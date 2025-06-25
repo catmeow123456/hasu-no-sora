@@ -1,0 +1,24 @@
+{
+  "name": "hasu-no-sora-player",
+  "version": "1.0.0",
+  "description": "A warm and sunny music player for Hasu no Sora albums",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"yarn workspace @hasu/server dev\" \"yarn workspace @hasu/ui dev\"",
+    "build": "yarn workspace @hasu/ui build",
+    "start": "yarn workspace @hasu/server start",
+    "clean": "rm -rf node_modules packages/*/node_modules packages/*/dist"
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "yarn": ">=1.22.0"
+  },
+  "packageManager": "yarn@4.9.1+sha512.f95ce356460e05be48d66401c1ae64ef84d163dd689964962c6888a9810865e39097a5e9de748876c2e0bf89b232d583c33982773e9903ae7a76257270986538"
+}
