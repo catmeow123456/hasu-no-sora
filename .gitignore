@@ -10,12 +10,7 @@ lerna-debug.log*
 # Yarn PnP (Plug'n'Play)
 # 注意：项目使用 Yarn PnP，保留 .pnp.* 文件
 # .pnp.*
-# .yarn/*
-# !.yarn/patches
-# !.yarn/plugins
-# !.yarn/releases
-# !.yarn/sdks
-# !.yarn/versions
+.yarn/*
 
 # Runtime data
 pids
