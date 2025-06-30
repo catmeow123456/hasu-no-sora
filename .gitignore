@@ -120,8 +120,6 @@ logs
 *.log
 
 # Editor directories and files
-.vscode/
-!.vscode/extensions.json
 .idea/
 .DS_Store
 *.suo
@@ -201,13 +199,6 @@ Temporary Items
 *.iml
 *.ipr
 *.iws
-
-# Visual Studio Code
-.vscode/
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
 
 # Sublime Text
 *.sublime-project

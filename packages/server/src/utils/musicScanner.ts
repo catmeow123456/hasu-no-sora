@@ -42,8 +42,8 @@ export class MusicScanner {
         /\.(jpg|jpeg|png|gif|webp)$/i.test(file)
       );
       if (imageFiles.length > 0) {
-        // 优先选择常见的封面文件名
-        const preferredNames = ['folder.jpg', 'cover.jpg', 'albumart.jpg'];
+        // 优先选择常见的封面文件名，album.jpg 为最高优先级
+        const preferredNames = ['album.jpg', 'folder.jpg', 'cover.jpg', 'albumart.jpg'];
         coverImage = preferredNames.find(name => 
           imageFiles.some(file => file.toLowerCase() === name.toLowerCase())
         ) || imageFiles[0];

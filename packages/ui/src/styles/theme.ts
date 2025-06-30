@@ -1,19 +1,19 @@
 export const theme = {
   colors: {
-    // 温暖阳光的色彩方案
-    primary: '#FF8C42',      // 暖橙色
-    secondary: '#FFD23F',    // 金黄色
-    accent: '#FF6B9D',       // 柔和粉色
-    background: '#FFF8F0',   // 奶油白
+    // 可爱粉橙色彩方案
+    primary: '#FF9A8B',      // 可爱珊瑚粉
+    secondary: '#FFB3BA',    // 甜美粉色
+    accent: '#FFAAA5',       // 温柔桃粉
+    background: '#FFF5F5',   // 粉白背景
     surface: '#FFFFFF',      // 纯白
-    surfaceHover: '#FFF4E6', // 浅橙白
+    surfaceHover: '#FFE8E8', // 浅粉白
     text: {
-      primary: '#2D1810',    // 深棕色
-      secondary: '#8B4513',  // 中棕色
-      muted: '#A0522D',      // 浅棕色
+      primary: '#4A2C2A',    // 温暖深棕
+      secondary: '#8B5A5A',  // 柔和棕粉
+      muted: '#B08080',      // 淡雅粉棕
     },
-    border: '#FFE4CC',       // 浅橙边框
-    shadow: 'rgba(255, 140, 66, 0.15)', // 暖橙阴影
+    border: '#FFD6D6',       // 粉色边框
+    shadow: 'rgba(255, 154, 139, 0.2)', // 粉橙阴影
   },
   
   fonts: {
@@ -51,16 +51,16 @@ export const theme = {
   },
   
   shadows: {
-    sm: '0 1px 2px 0 rgba(255, 140, 66, 0.05)',
-    md: '0 4px 6px -1px rgba(255, 140, 66, 0.1), 0 2px 4px -1px rgba(255, 140, 66, 0.06)',
-    lg: '0 10px 15px -3px rgba(255, 140, 66, 0.1), 0 4px 6px -2px rgba(255, 140, 66, 0.05)',
-    xl: '0 20px 25px -5px rgba(255, 140, 66, 0.1), 0 10px 10px -5px rgba(255, 140, 66, 0.04)',
+    sm: '0 1px 2px 0 rgba(255, 154, 139, 0.08)',
+    md: '0 4px 6px -1px rgba(255, 154, 139, 0.15), 0 2px 4px -1px rgba(255, 154, 139, 0.1)',
+    lg: '0 10px 15px -3px rgba(255, 154, 139, 0.15), 0 4px 6px -2px rgba(255, 154, 139, 0.08)',
+    xl: '0 20px 25px -5px rgba(255, 154, 139, 0.15), 0 10px 10px -5px rgba(255, 154, 139, 0.06)',
   },
   
   gradients: {
-    primary: 'linear-gradient(135deg, #FF8C42 0%, #FFD23F 100%)',
-    secondary: 'linear-gradient(135deg, #FFD23F 0%, #FF6B9D 100%)',
-    background: 'linear-gradient(135deg, #FFF8F0 0%, #FFFFFF 100%)',
+    primary: 'linear-gradient(135deg, #FF9A8B 0%, #FFB3BA 100%)',
+    secondary: 'linear-gradient(135deg, #FFB3BA 0%, #FFAAA5 100%)',
+    background: 'linear-gradient(135deg, #FFF5F5 0%, #FFFFFF 100%)',
   },
   
   transitions: {
@@ -71,3 +71,8 @@ export const theme = {
 };
 
 export type Theme = typeof theme;
+
+// Styled-components v6 theme declaration
+declare module 'styled-components' {
+  export interface DefaultTheme extends Theme {}
+}
