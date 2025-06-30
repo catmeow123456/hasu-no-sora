@@ -38,11 +38,11 @@ const BackButton = styled.button`
   }
 `;
 
-const AlbumCover = styled.div<{ hasImage: boolean }>`
+const AlbumCover = styled.div<{ $hasImage: boolean }>`
   width: 300px;
   height: 300px;
   border-radius: ${theme.borderRadius.xl};
-  background: ${props => props.hasImage ? 'transparent' : theme.gradients.secondary};
+  background: ${props => props.$hasImage ? 'transparent' : theme.gradients.secondary};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -90,16 +90,16 @@ const TrackList = styled.div`
   margin: 0 auto;
 `;
 
-const TrackItem = styled.div<{ isActive: boolean }>`
+const TrackItem = styled.div<{ $isActive: boolean }>`
   display: flex;
   align-items: center;
   padding: ${theme.spacing.md};
-  background: ${props => props.isActive ? theme.colors.surfaceHover : theme.colors.surface};
+  background: ${props => props.$isActive ? theme.colors.surfaceHover : theme.colors.surface};
   border-radius: ${theme.borderRadius.lg};
   margin-bottom: ${theme.spacing.sm};
   cursor: pointer;
   transition: all ${theme.transitions.fast};
-  border: 2px solid ${props => props.isActive ? theme.colors.primary : 'transparent'};
+  border: 2px solid ${props => props.$isActive ? theme.colors.primary : 'transparent'};
 
   &:hover {
     background: ${theme.colors.surfaceHover};
@@ -136,7 +136,7 @@ const TrackDuration = styled.span`
   color: ${theme.colors.text.secondary};
 `;
 
-const PlayIcon = styled.div<{ isPlaying: boolean }>`
+const PlayIcon = styled.div<{ $isPlaying: boolean }>`
   width: 24px;
   height: 24px;
   margin-left: ${theme.spacing.md};
@@ -244,7 +244,7 @@ export const AlbumDetail: React.FC<AlbumDetailProps> = ({
       <BackButton onClick={onBack}>← 返回专辑列表</BackButton>
       
       <Header>
-        <AlbumCover hasImage={!!album.coverImage}>
+        <AlbumCover $hasImage={!!album.coverImage}>
           {album.coverImage ? (
             <img
               src={apiService.getCoverImageUrl(album.id, album.coverImage)}
@@ -270,7 +270,7 @@ export const AlbumDetail: React.FC<AlbumDetailProps> = ({
           return (
             <TrackItem
               key={track.id}
-              isActive={isCurrentTrack}
+              $isActive={isCurrentTrack}
               onClick={() => onTrackSelect(track, album)}
             >
               <TrackNumber>{index + 1}</TrackNumber>
@@ -278,7 +278,7 @@ export const AlbumDetail: React.FC<AlbumDetailProps> = ({
                 <TrackTitle>{track.title}</TrackTitle>
                 <TrackDuration>{formatDuration(track.duration)}</TrackDuration>
               </TrackInfo>
-              <PlayIcon isPlaying={isCurrentTrack && isPlaying}>
+              <PlayIcon $isPlaying={isCurrentTrack && isPlaying}>
                 {isCurrentTrack && isPlaying ? '⏸️' : '▶️'}
               </PlayIcon>
             </TrackItem>

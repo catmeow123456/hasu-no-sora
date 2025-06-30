@@ -12,6 +12,7 @@ export interface Album {
   coverImage?: string;
   tracks: Track[];
   path: string;
+  releaseDate?: string;
 }
 
 export interface MusicLibrary {

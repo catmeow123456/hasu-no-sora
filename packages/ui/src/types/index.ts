@@ -12,6 +12,7 @@ export interface Album {
   coverImage?: string;
   tracks: Track[];
   path?: string;
+  releaseDate?: string;
 }
 
 export interface AlbumSummary {
@@ -19,6 +20,7 @@ export interface AlbumSummary {
   name: string;
   coverImage?: string;
   trackCount: number;
+  releaseDate?: string;
 }
 
 export interface PlayerState {

@@ -35,8 +35,18 @@ app.get('/api/albums', (req, res) => {
     id: album.id,
     name: album.name,
     coverImage: album.coverImage,
-    trackCount: album.tracks.length
+    trackCount: album.tracks.length,
+    releaseDate: album.releaseDate
   }));
+  
+  // 按发售日期排序，最新的在前面
+  albumsWithoutTracks.sort((a, b) => {
+    if (!a.releaseDate && !b.releaseDate) return 0;
+    if (!a.releaseDate) return 1;
+    if (!b.releaseDate) return -1;
+    return new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime();
+  });
+  
   res.json(albumsWithoutTracks);
 });
 

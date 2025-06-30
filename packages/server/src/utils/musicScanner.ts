@@ -2,11 +2,33 @@ import fs from 'fs';
 import path from 'path';
 import { Album, Track } from '../types';
 
+interface AlbumDates {
+  [albumName: string]: string;
+}
+
 export class MusicScanner {
   private musicPath: string;
+  private albumDates: AlbumDates = {};
 
   constructor(musicPath: string) {
     this.musicPath = musicPath;
+    this.loadAlbumDates();
+  }
+
+  private loadAlbumDates(): void {
+    try {
+      const albumDatesPath = path.resolve(__dirname, '../../../../albumDates.json');
+      if (fs.existsSync(albumDatesPath)) {
+        const data = fs.readFileSync(albumDatesPath, 'utf-8');
+        this.albumDates = JSON.parse(data);
+        console.log('Album dates loaded successfully');
+      } else {
+        console.warn('albumDates.json not found, albums will not have release dates');
+      }
+    } catch (error) {
+      console.error('Error loading album dates:', error);
+      this.albumDates = {};
+    }
   }
 
   async scanLibrary(): Promise<Album[]> {
@@ -70,7 +92,8 @@ export class MusicScanner {
         name: albumName,
         coverImage,
         tracks,
-        path: albumPath
+        path: albumPath,
+        releaseDate: this.albumDates[albumName]
       };
     } catch (error) {
       console.error(`Error scanning album ${albumName}:`, error);
