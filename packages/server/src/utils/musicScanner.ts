@@ -35,17 +35,35 @@ export class MusicScanner {
     const albums: Album[] = [];
     
     try {
-      const entries = fs.readdirSync(this.musicPath, { withFileTypes: true });
+      console.log('Starting music library scan...');
+      const startTime = Date.now();
       
-      for (const entry of entries) {
-        if (entry.isDirectory()) {
+      const entries = await fs.promises.readdir(this.musicPath, { withFileTypes: true });
+      
+      // 并行扫描专辑，但限制并发数量避免过载
+      const albumPromises = entries
+        .filter(entry => entry.isDirectory())
+        .map(async (entry) => {
           const albumPath = path.join(this.musicPath, entry.name);
-          const album = await this.scanAlbum(entry.name, albumPath);
+          return this.scanAlbum(entry.name, albumPath);
+        });
+
+      // 分批处理，每批最多5个专辑
+      const batchSize = 5;
+      for (let i = 0; i < albumPromises.length; i += batchSize) {
+        const batch = albumPromises.slice(i, i + batchSize);
+        const batchResults = await Promise.all(batch);
+        
+        for (const album of batchResults) {
           if (album && album.tracks.length > 0) {
             albums.push(album);
           }
         }
       }
+      
+      const endTime = Date.now();
+      console.log(`Music library scan completed in ${endTime - startTime}ms`);
+      
     } catch (error) {
       console.error('Error scanning music library:', error);
     }

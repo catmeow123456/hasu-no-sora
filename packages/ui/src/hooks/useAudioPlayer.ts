@@ -1,9 +1,12 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Track, Album, PlayerState } from '../types';
 import { apiService } from '../services/api';
 
 export const useAudioPlayer = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const timeUpdateThrottleRef = useRef<number>(0);
+  const playNextRef = useRef<(() => void) | null>(null);
+  
   const [playerState, setPlayerState] = useState<PlayerState>({
     currentTrack: null,
     currentAlbum: null,
@@ -13,45 +16,57 @@ export const useAudioPlayer = () => {
     volume: 0.7,
   });
 
+  // 节流的时间更新处理器 - 从60fps降到4fps
+  const handleTimeUpdate = useCallback(() => {
+    const now = Date.now();
+    if (now - timeUpdateThrottleRef.current < 250) return; // 250ms节流
+    timeUpdateThrottleRef.current = now;
+    
+    if (audioRef.current) {
+      setPlayerState(prev => ({
+        ...prev,
+        currentTime: audioRef.current!.currentTime,
+      }));
+    }
+  }, []);
+
+  const handleDurationChange = useCallback(() => {
+    if (audioRef.current) {
+      setPlayerState(prev => ({
+        ...prev,
+        duration: audioRef.current!.duration || 0,
+      }));
+    }
+  }, []);
+
+  const handleEnded = useCallback(() => {
+    setPlayerState(prev => ({
+      ...prev,
+      isPlaying: false,
+    }));
+    // 使用ref避免闭包问题
+    if (playNextRef.current) {
+      playNextRef.current();
+    }
+  }, []);
+
+  const handleLoadStart = useCallback(() => {
+    setPlayerState(prev => ({
+      ...prev,
+      duration: 0,
+      currentTime: 0,
+    }));
+  }, []);
+
   // 初始化音频元素
   useEffect(() => {
     if (!audioRef.current) {
       audioRef.current = new Audio();
       audioRef.current.volume = playerState.volume;
+      audioRef.current.preload = 'metadata'; // 只预加载元数据
     }
 
     const audio = audioRef.current;
-
-    const handleTimeUpdate = () => {
-      setPlayerState(prev => ({
-        ...prev,
-        currentTime: audio.currentTime,
-      }));
-    };
-
-    const handleDurationChange = () => {
-      setPlayerState(prev => ({
-        ...prev,
-        duration: audio.duration || 0,
-      }));
-    };
-
-    const handleEnded = () => {
-      setPlayerState(prev => ({
-        ...prev,
-        isPlaying: false,
-      }));
-      // 自动播放下一首
-      playNext();
-    };
-
-    const handleLoadStart = () => {
-      setPlayerState(prev => ({
-        ...prev,
-        duration: 0,
-        currentTime: 0,
-      }));
-    };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('durationchange', handleDurationChange);
@@ -64,7 +79,7 @@ export const useAudioPlayer = () => {
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('loadstart', handleLoadStart);
     };
-  }, []);
+  }, [handleTimeUpdate, handleDurationChange, handleEnded, handleLoadStart]);
 
   // 播放指定曲目
   const playTrack = useCallback(async (track: Track, album: Album) => {
@@ -159,13 +174,20 @@ export const useAudioPlayer = () => {
     }
   }, [playerState.currentAlbum, playerState.currentTrack, playTrack]);
 
-  // 格式化时间
-  const formatTime = useCallback((seconds: number): string => {
-    if (!isFinite(seconds)) return '0:00';
-    
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  // 更新 playNext ref
+  useEffect(() => {
+    playNextRef.current = playNext;
+  }, [playNext]);
+
+  // 格式化时间 - 使用 useMemo 缓存
+  const formatTime = useMemo(() => {
+    return (seconds: number): string => {
+      if (!isFinite(seconds)) return '0:00';
+      
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = Math.floor(seconds % 60);
+      return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    };
   }, []);
 
   return {

@@ -64,9 +64,10 @@ export const theme = {
   },
   
   transitions: {
-    fast: '150ms ease-in-out',
-    normal: '250ms ease-in-out',
-    slow: '350ms ease-in-out',
+    instant: '80ms ease-out',
+    fast: '120ms ease-out',
+    normal: '200ms ease-out',
+    slow: '300ms ease-in-out',
   },
 };
 

@@ -6,17 +6,16 @@ import { CuteButton } from './CuteButton';
 import { CuteProgressBar } from './CuteProgressBar';
 import { CuteVolumeSlider } from './CuteVolumeSlider';
 
-// 发光动画
+// 优化的发光动画 - 降低频率和复杂度
 const glow = keyframes`
   0%, 100% { box-shadow: ${theme.shadows.xl}; }
-  50% { box-shadow: ${theme.shadows.xl}, 0 0 20px rgba(255, 154, 139, 0.3); }
+  50% { box-shadow: ${theme.shadows.xl}, 0 0 15px rgba(255, 154, 139, 0.2); }
 `;
 
-// 音符飘动动画
+// 简化的音符动画 - 只使用 transform 和 opacity
 const noteFloat = keyframes`
-  0% { transform: translateY(0px) rotate(0deg); opacity: 0.7; }
-  50% { transform: translateY(-10px) rotate(180deg); opacity: 1; }
-  100% { transform: translateY(0px) rotate(360deg); opacity: 0.7; }
+  0%, 100% { transform: translateY(0px); opacity: 0.7; }
+  50% { transform: translateY(-8px); opacity: 1; }
 `;
 
 const PlayerContainer = styled.div`
@@ -28,10 +27,11 @@ const PlayerContainer = styled.div`
   border-top: 3px solid transparent;
   border-image: ${theme.gradients.primary} 1;
   padding: ${theme.spacing.lg} ${theme.spacing.md};
-  animation: ${glow} 4s ease-in-out infinite;
+  animation: ${glow} 6s ease-in-out infinite;
   backdrop-filter: blur(15px);
   z-index: 1000;
   overflow: hidden;
+  will-change: box-shadow;
   
   &::before {
     content: '';
@@ -209,7 +209,7 @@ interface AudioPlayerProps {
   formatTime: (seconds: number) => string;
 }
 
-export const AudioPlayer: React.FC<AudioPlayerProps> = ({
+export const AudioPlayer: React.FC<AudioPlayerProps> = React.memo(({
   playerState,
   onPlayPause,
   onPrevious,
@@ -302,4 +302,6 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       </PlayerContent>
     </PlayerContainer>
   );
-};
+});
+
+AudioPlayer.displayName = 'AudioPlayer';

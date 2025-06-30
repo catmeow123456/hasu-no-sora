@@ -11,13 +11,19 @@ const PORT = process.env.PORT || 3001;
 const MUSIC_PATH = path.resolve(__dirname, '../../../music');
 
 let musicLibrary: Album[] = [];
+let libraryCache: { albums: any[], timestamp: number } | null = null;
+const CACHE_DURATION = 5 * 60 * 1000; // 5分钟缓存
 
 // 中间件
 app.use(cors());
 app.use(express.json());
 
-// 静态文件服务 - 提供音频文件
-app.use('/audio', express.static(MUSIC_PATH));
+// 静态文件服务 - 提供音频文件，添加缓存头
+app.use('/audio', express.static(MUSIC_PATH, {
+  maxAge: '1d', // 音频文件缓存1天
+  etag: true,
+  lastModified: true
+}));
 
 // 初始化音乐库
 async function initializeMusicLibrary() {
@@ -29,8 +35,17 @@ async function initializeMusicLibrary() {
 
 // API 路由
 
-// 获取所有专辑
+// 获取所有专辑 - 添加缓存
 app.get('/api/albums', (req, res) => {
+  // 设置缓存头
+  res.set('Cache-Control', 'public, max-age=300'); // 5分钟缓存
+  
+  // 检查内存缓存
+  const now = Date.now();
+  if (libraryCache && (now - libraryCache.timestamp) < CACHE_DURATION) {
+    return res.json(libraryCache.albums);
+  }
+  
   const albumsWithoutTracks = musicLibrary.map(album => ({
     id: album.id,
     name: album.name,
@@ -47,11 +62,20 @@ app.get('/api/albums', (req, res) => {
     return new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime();
   });
   
+  // 更新缓存
+  libraryCache = {
+    albums: albumsWithoutTracks,
+    timestamp: now
+  };
+  
   res.json(albumsWithoutTracks);
 });
 
-// 获取特定专辑详情
+// 获取特定专辑详情 - 添加缓存
 app.get('/api/albums/:id', (req, res) => {
+  // 设置缓存头
+  res.set('Cache-Control', 'public, max-age=600'); // 10分钟缓存
+  
   const album = musicLibrary.find(a => a.id === req.params.id);
   if (!album) {
     return res.status(404).json({ error: 'Album not found' });

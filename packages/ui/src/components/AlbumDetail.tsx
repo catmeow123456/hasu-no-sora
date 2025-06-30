@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
 import { Album, Track } from '../types';
 import { apiService } from '../services/api';
 import { theme } from '../styles/theme';
+import { LazyImage } from './LazyImage';
 
 const Container = styled.div`
   padding: ${theme.spacing.xl};
@@ -183,7 +184,7 @@ interface AlbumDetailProps {
   isPlaying: boolean;
 }
 
-export const AlbumDetail: React.FC<AlbumDetailProps> = ({
+export const AlbumDetail: React.FC<AlbumDetailProps> = React.memo(({
   albumId,
   onBack,
   onTrackSelect,
@@ -212,12 +213,18 @@ export const AlbumDetail: React.FC<AlbumDetailProps> = ({
     loadAlbum();
   }, [albumId]);
 
-  const formatDuration = (seconds?: number): string => {
+  const formatDuration = useCallback((seconds?: number): string => {
     if (!seconds) return '';
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.floor(seconds % 60);
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
+  }, []);
+
+  const handleTrackSelect = useCallback((track: Track) => {
+    if (album) {
+      onTrackSelect(track, album);
+    }
+  }, [album, onTrackSelect]);
 
   if (loading) {
     return (
@@ -287,4 +294,6 @@ export const AlbumDetail: React.FC<AlbumDetailProps> = ({
       </TrackList>
     </Container>
   );
-};
+});
+
+AlbumDetail.displayName = 'AlbumDetail';
