@@ -38,7 +38,11 @@ export class MusicScanner {
       console.log('Starting music library scan...');
       const startTime = Date.now();
       
-      const entries = await fs.promises.readdir(this.musicPath, { withFileTypes: true });
+      // 确保使用 UTF-8 编码读取目录
+      const entries = await fs.promises.readdir(this.musicPath, { 
+        withFileTypes: true,
+        encoding: 'utf8'
+      });
       
       // 并行扫描专辑，但限制并发数量避免过载
       const albumPromises = entries
@@ -73,7 +77,8 @@ export class MusicScanner {
 
   private async scanAlbum(albumName: string, albumPath: string): Promise<Album | null> {
     try {
-      const files = fs.readdirSync(albumPath);
+      // 确保使用 UTF-8 编码读取专辑目录内容
+      const files = fs.readdirSync(albumPath, { encoding: 'utf8' });
       const tracks: Track[] = [];
       let coverImage: string | undefined;
 
@@ -121,18 +126,19 @@ export class MusicScanner {
 
   private async parseAudioFile(filename: string, filePath: string, albumName: string): Promise<Track | null> {
     try {
-      // 动态导入 music-metadata ES 模块
-      const { parseFile } = await import('music-metadata');
-      const metadata = await parseFile(filePath, { 
-        skipCovers: true,
-        skipPostHeaders: true 
-      });
+      // 使用 fs.readFile 读取文件为 Buffer，然后用 parseBuffer 解析
+      // 这样可以确保传递给 music-metadata 的始终是正确的 Buffer 对象
+      const buffer = await fs.promises.readFile(filePath);
+      const { parseBuffer } = await import('music-metadata');
       
-      let title = metadata.common.title;
+      const metadata = await parseBuffer(buffer);
+      
+      let title: string;
       
       // 简化处理：如果标题存在且不是明显乱码，就使用它；否则使用文件名
-      if (title && !this.isGarbledText(title)) {
+      if (metadata.common.title && !this.isGarbledText(metadata.common.title)) {
         // 直接使用元数据中的标题
+        title = metadata.common.title;
       } else {
         // 使用文件名作为标题
         title = this.extractTitleFromFilename(filename);
@@ -182,6 +188,8 @@ export class MusicScanner {
     const garbledPatterns = [
       // Latin-1 编码错误导致的中文乱码
       /[ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ]{2,}/,
+      // 特定的无穷符号编码错误：∞ -> ¡Þ
+      /¡Þ/,
       // Shift-JIS 编码错误导致的日文乱码
       /[¥©`]{2,}/,
       // 其他常见乱码模式

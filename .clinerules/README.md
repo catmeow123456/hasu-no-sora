@@ -84,6 +84,9 @@ yarn clean
 - `GET /api/images/:albumId/:filename` - 获取专辑封面
 - `GET /audio/:albumName/:filename` - 获取音频文件
 
+### 开发接口 (需要认证)
+- `POST /api/rescan` - 强制重新扫描音乐库并清除缓存
+
 ### 公开接口
 - `GET /api/health` - 健康检查
 

@@ -53,7 +53,7 @@ const ProgressTrack = styled.div`
   border-radius: ${theme.borderRadius.full};
 `;
 
-const ProgressBar = styled.div<{ progress: number; isPlaying?: boolean }>`
+const ProgressBar = styled.div<{ $progress: number; $isPlaying?: boolean }>`
   height: 100%;
   background: linear-gradient(
     90deg,
@@ -65,12 +65,12 @@ const ProgressBar = styled.div<{ progress: number; isPlaying?: boolean }>`
   );
   background-size: 300% 100%;
   border-radius: ${theme.borderRadius.full};
-  width: ${props => props.progress}%;
+  width: ${props => props.$progress}%;
   transition: width 0.1s ease-out;
   position: relative;
   overflow: hidden;
   
-  animation: ${props => props.isPlaying ? rainbowFlow : 'none'} 3s ease infinite;
+  animation: ${props => props.$isPlaying ? rainbowFlow : 'none'} 3s ease infinite;
   
   &::after {
     content: '';
@@ -116,23 +116,23 @@ const ProgressThumb = styled.div<{ $progress: number; $visible: boolean }>`
   }
 `;
 
-const FloatingNotes = styled.div<{ progress: number; isPlaying?: boolean }>`
+const FloatingNotes = styled.div<{ $progress: number; $isPlaying?: boolean }>`
   position: absolute;
   top: -20px;
-  left: ${props => Math.max(0, props.progress - 5)}%;
+  left: ${props => Math.max(0, props.$progress - 5)}%;
   width: 40px;
   height: 20px;
   pointer-events: none;
-  opacity: ${props => props.isPlaying ? 1 : 0};
+  opacity: ${props => props.$isPlaying ? 1 : 0};
   transition: all ${theme.transitions.normal};
 `;
 
-const MusicNote = styled.div<{ delay: number }>`
+const MusicNote = styled.div<{ $delay: number }>`
   position: absolute;
   font-size: 12px;
   color: ${theme.colors.primary};
   animation: ${sparkle} 1.5s ease-in-out infinite;
-  animation-delay: ${props => props.delay}s;
+  animation-delay: ${props => props.$delay}s;
   
   &:nth-child(1) { left: 0; top: 0; }
   &:nth-child(2) { left: 15px; top: 5px; }
@@ -196,15 +196,15 @@ export const CuteProgressBar: React.FC<CuteProgressBarProps> = ({
       onMouseUp={handleMouseUp}
     >
       <ProgressTrack />
-      <ProgressBar progress={progress} isPlaying={isPlaying} />
+      <ProgressBar $progress={progress} $isPlaying={isPlaying} />
       <ProgressThumb 
         $progress={progress} 
         $visible={isHovered || isDragging} 
       />
-      <FloatingNotes progress={progress} isPlaying={isPlaying}>
-        <MusicNote delay={0}>🎵</MusicNote>
-        <MusicNote delay={0.3}>🎶</MusicNote>
-        <MusicNote delay={0.6}>♪</MusicNote>
+      <FloatingNotes $progress={progress} $isPlaying={isPlaying}>
+        <MusicNote $delay={0}>🎵</MusicNote>
+        <MusicNote $delay={0.3}>🎶</MusicNote>
+        <MusicNote $delay={0.6}>♪</MusicNote>
       </FloatingNotes>
     </ProgressContainer>
   );

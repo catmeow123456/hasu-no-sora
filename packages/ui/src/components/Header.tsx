@@ -67,13 +67,13 @@ const SakuraContainer = styled.div`
   overflow: hidden;
 `;
 
-const SakuraPetal = styled.div<{ delay: number; duration: number; left: number }>`
+const SakuraPetal = styled.div<{ $delay: number; $duration: number; $left: number }>`
   position: absolute;
   top: -20px;
-  left: ${props => props.left}%;
+  left: ${props => props.$left}%;
   font-size: 20px;
-  animation: ${sakuraFall} ${props => props.duration}s linear infinite;
-  animation-delay: ${props => props.delay}s;
+  animation: ${sakuraFall} ${props => props.$duration}s linear infinite;
+  animation-delay: ${props => props.$delay}s;
   opacity: 0.7;
 `;
 
@@ -154,13 +154,13 @@ const DecorationRight = styled.div`
   }
 `;
 
-const StarDecoration = styled.div<{ top: string; left: string; delay: number }>`
+const StarDecoration = styled.div<{ $top: string; $left: string; $delay: number }>`
   position: absolute;
-  top: ${props => props.top};
-  left: ${props => props.left};
+  top: ${props => props.$top};
+  left: ${props => props.$left};
   font-size: 16px;
   animation: ${sparkle} 1.5s ease-in-out infinite;
-  animation-delay: ${props => props.delay}s;
+  animation-delay: ${props => props.$delay}s;
   pointer-events: none;
 `;
 
@@ -188,9 +188,9 @@ export const Header: React.FC = () => {
         {sakuraPetals.map(petal => (
           <SakuraPetal
             key={petal.id}
-            delay={petal.delay}
-            duration={petal.duration}
-            left={petal.left}
+            $delay={petal.delay}
+            $duration={petal.duration}
+            $left={petal.left}
           >
             {petal.emoji}
           </SakuraPetal>
@@ -202,10 +202,10 @@ export const Header: React.FC = () => {
         <MainTitle>🌸 Hasu no Sora 音乐播放器</MainTitle>
         <DecorationRight>🎵✨</DecorationRight>
         
-        <StarDecoration top="10%" left="20%" delay={0}>⭐</StarDecoration>
-        <StarDecoration top="15%" left="80%" delay={0.8}>💫</StarDecoration>
-        <StarDecoration top="80%" left="15%" delay={1.2}>✨</StarDecoration>
-        <StarDecoration top="85%" left="85%" delay={1.8}>⭐</StarDecoration>
+        <StarDecoration $top="10%" $left="20%" $delay={0}>⭐</StarDecoration>
+        <StarDecoration $top="15%" $left="80%" $delay={0.8}>💫</StarDecoration>
+        <StarDecoration $top="80%" $left="15%" $delay={1.2}>✨</StarDecoration>
+        <StarDecoration $top="85%" $left="85%" $delay={1.8}>⭐</StarDecoration>
       </TitleWrapper>
       
       <Subtitle>いま、この瞬間を大切に。Bloom the smile, Bloom the dream. ♪</Subtitle>

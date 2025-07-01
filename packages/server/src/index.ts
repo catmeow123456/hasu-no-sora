@@ -30,7 +30,13 @@ app.use(cors({
   credentials: true, // 允许携带 cookie
   origin: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+
+// 设置默认字符编码
+app.use((req, res, next) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  next();
+});
 
 // Session 配置
 app.use(session({
@@ -202,6 +208,33 @@ app.get('/api/health', (req, res) => {
     albums: musicLibrary.length,
     timestamp: new Date().toISOString()
   });
+});
+
+// 强制重新扫描音乐库 - 开发用途
+app.post('/api/rescan', requireAuth, async (req, res) => {
+  try {
+    console.log('Force rescanning music library...');
+    
+    // 清除缓存
+    libraryCache = null;
+    
+    // 重新扫描
+    await initializeMusicLibrary();
+    
+    res.json({ 
+      success: true, 
+      message: 'Music library rescanned successfully',
+      albums: musicLibrary.length,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error rescanning music library:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to rescan music library',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
 });
 
 // 静态文件服务 - 提供前端文件

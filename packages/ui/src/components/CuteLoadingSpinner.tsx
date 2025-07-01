@@ -95,17 +95,17 @@ const FloatingElements = styled.div`
 `;
 
 const FloatingElement = styled.div<{ 
-  top: string; 
-  left: string; 
-  delay: number; 
-  size: string;
+  $top: string; 
+  $left: string; 
+  $delay: number; 
+  $size: string;
 }>`
   position: absolute;
-  top: ${props => props.top};
-  left: ${props => props.left};
-  font-size: ${props => props.size};
+  top: ${props => props.$top};
+  left: ${props => props.$left};
+  font-size: ${props => props.$size};
   animation: ${twinkle} 2s ease-in-out infinite;
-  animation-delay: ${props => props.delay}s;
+  animation-delay: ${props => props.$delay}s;
 `;
 
 const LoadingText = styled.div`
@@ -135,13 +135,13 @@ const DotsContainer = styled.div`
   margin-top: ${theme.spacing.sm};
 `;
 
-const Dot = styled.div<{ delay: number }>`
+const Dot = styled.div<{ $delay: number }>`
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: ${theme.colors.primary};
   animation: ${bounce} 1.4s ease-in-out infinite;
-  animation-delay: ${props => props.delay}s;
+  animation-delay: ${props => props.$delay}s;
 `;
 
 interface CuteLoadingSpinnerProps {
@@ -170,10 +170,10 @@ export const CuteLoadingSpinner: React.FC<CuteLoadingSpinnerProps> = ({
           {floatingElements.map((element, index) => (
             <FloatingElement
               key={index}
-              top={element.top}
-              left={element.left}
-              delay={element.delay}
-              size={element.size}
+              $top={element.top}
+              $left={element.left}
+              $delay={element.delay}
+              $size={element.size}
             >
               {element.emoji}
             </FloatingElement>
@@ -185,9 +185,9 @@ export const CuteLoadingSpinner: React.FC<CuteLoadingSpinnerProps> = ({
         <LoadingText>{text}</LoadingText>
         <SubText>{subText}</SubText>
         <DotsContainer>
-          <Dot delay={0} />
-          <Dot delay={0.2} />
-          <Dot delay={0.4} />
+          <Dot $delay={0} />
+          <Dot $delay={0.2} />
+          <Dot $delay={0.4} />
         </DotsContainer>
       </div>
     </LoadingContainer>

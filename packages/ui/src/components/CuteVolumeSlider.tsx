@@ -23,11 +23,11 @@ const VolumeContainer = styled.div`
   position: relative;
 `;
 
-const VolumeIcon = styled.div<{ volume: number }>`
+const VolumeIcon = styled.div<{ $volume: number }>`
   font-size: ${theme.fontSizes.base};
   cursor: pointer;
   transition: all ${theme.transitions.fast};
-  animation: ${props => props.volume > 0 ? noteJump : 'none'} 2s ease-in-out infinite;
+  animation: ${props => props.$volume > 0 ? noteJump : 'none'} 2s ease-in-out infinite;
   
   &:hover {
     transform: scale(1.2);
@@ -51,9 +51,9 @@ const SliderTrack = styled.div`
   overflow: hidden;
 `;
 
-const SliderFill = styled.div<{ volume: number }>`
+const SliderFill = styled.div<{ $volume: number }>`
   height: 100%;
-  width: ${props => props.volume * 100}%;
+  width: ${props => props.$volume * 100}%;
   background: linear-gradient(90deg, #FF9A8B, #FFB3BA, #FFAAA5);
   border-radius: ${theme.borderRadius.full};
   transition: width ${theme.transitions.fast};
@@ -135,14 +135,14 @@ const VolumeThumb = styled.div<{ $volume: number; $visible: boolean }>`
   }
 `;
 
-const VolumeWaves = styled.div<{ volume: number }>`
+const VolumeWaves = styled.div<{ $volume: number }>`
   position: absolute;
   right: -25px;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
   gap: 2px;
-  opacity: ${props => props.volume > 0 ? 1 : 0.3};
+  opacity: ${props => props.$volume > 0 ? 1 : 0.3};
   transition: opacity ${theme.transitions.fast};
 `;
 
@@ -214,13 +214,13 @@ export const CuteVolumeSlider: React.FC<CuteVolumeSliderProps> = ({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <VolumeIcon volume={volume} onClick={handleIconClick}>
+      <VolumeIcon $volume={volume} onClick={handleIconClick}>
         {getVolumeIcon()}
       </VolumeIcon>
       
       <SliderContainer>
         <SliderTrack>
-          <SliderFill volume={volume} />
+          <SliderFill $volume={volume} />
         </SliderTrack>
         <SliderInput
           type="range"
@@ -236,7 +236,7 @@ export const CuteVolumeSlider: React.FC<CuteVolumeSliderProps> = ({
         />
       </SliderContainer>
       
-      <VolumeWaves volume={volume}>
+      <VolumeWaves $volume={volume}>
         {waves.map((wave, index) => (
           <VolumeWave
             key={index}
