@@ -1,25 +1,23 @@
 import React from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import { theme } from '../styles/theme';
 
-// 彩虹流动动画
+// 优化的彩虹流动动画 - 使用 transform 替代 background-position
 const rainbowFlow = keyframes`
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 `;
 
-// 闪烁动画
+// 简化的闪烁动画
 const sparkle = keyframes`
-  0%, 100% { opacity: 0.6; }
+  0%, 100% { opacity: 0.8; }
   50% { opacity: 1; }
 `;
 
-// 脉冲动画
+// 优化的脉冲动画 - 减小缩放幅度
 const pulse = keyframes`
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.15); }
 `;
 
 const ProgressContainer = styled.div`
@@ -31,6 +29,7 @@ const ProgressContainer = styled.div`
   cursor: pointer;
   overflow: hidden;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  will-change: height;
   
   &:hover {
     height: 10px;
@@ -55,40 +54,48 @@ const ProgressTrack = styled.div`
 
 const ProgressBar = styled.div<{ $progress: number; $isPlaying?: boolean }>`
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    #FF9A8B,
-    #FFB3BA,
-    #FFAAA5,
-    #FFD1DC,
-    #FF9A8B
-  );
-  background-size: 300% 100%;
+  background: linear-gradient(90deg, #FF9A8B, #FFB3BA, #FFAAA5);
   border-radius: ${theme.borderRadius.full};
   width: ${props => props.$progress}%;
   transition: width 0.1s ease-out;
   position: relative;
   overflow: hidden;
+  will-change: width;
   
-  animation: ${props => props.$isPlaying ? rainbowFlow : 'none'} 3s ease infinite;
+  ${props => props.$isPlaying && css`
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, 
+        rgba(255, 255, 255, 0.3), 
+        rgba(255, 255, 255, 0.1), 
+        rgba(255, 255, 255, 0.3)
+      );
+      animation: ${rainbowFlow} 2s linear infinite;
+    }
+  `}
   
   &::after {
     content: '';
     position: absolute;
     top: 0;
-    right: -4px;
-    width: 8px;
+    right: -2px;
+    width: 4px;
     height: 100%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.8), transparent);
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.9), transparent);
     border-radius: 50%;
-    animation: ${sparkle} 2s ease-in-out infinite;
+    animation: ${sparkle} 1.5s ease-in-out infinite;
   }
 `;
 
-const ProgressThumb = styled.div<{ $progress: number; $visible: boolean }>`
+const ProgressThumb = styled.div<{ $position: number; $visible: boolean; $isDragging: boolean }>`
   position: absolute;
   top: 50%;
-  left: ${props => props.$progress}%;
+  left: ${props => props.$position}%;
   transform: translate(-50%, -50%);
   width: 16px;
   height: 16px;
@@ -97,12 +104,16 @@ const ProgressThumb = styled.div<{ $progress: number; $visible: boolean }>`
   border-radius: 50%;
   cursor: pointer;
   opacity: ${props => props.$visible ? 1 : 0};
-  transition: all ${theme.transitions.fast};
+  transition: ${props => props.$isDragging 
+    ? 'opacity 0.1s ease-out' 
+    : 'opacity 0.15s ease-out, left 0.1s ease-out'
+  };
   box-shadow: ${theme.shadows.md};
+  will-change: transform, left, opacity;
+  transform-origin: center;
   
   &:hover {
-    transform: translate(-50%, -50%) scale(1.2);
-    animation: ${pulse} 0.6s ease infinite;
+    animation: ${pulse} 0.8s ease-in-out infinite;
   }
   
   &::before {
@@ -146,7 +157,7 @@ interface CuteProgressBarProps {
   className?: string;
 }
 
-export const CuteProgressBar: React.FC<CuteProgressBarProps> = ({
+export const CuteProgressBar: React.FC<CuteProgressBarProps> = React.memo(({
   progress,
   onSeek,
   isPlaying = false,
@@ -154,52 +165,129 @@ export const CuteProgressBar: React.FC<CuteProgressBarProps> = ({
 }) => {
   const [isHovered, setIsHovered] = React.useState(false);
   const [isDragging, setIsDragging] = React.useState(false);
+  const [thumbPosition, setThumbPosition] = React.useState(progress);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const dragStartRef = React.useRef<number>(0);
 
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!onSeek) return;
-    
-    const rect = e.currentTarget.getBoundingClientRect();
+  // 计算鼠标位置对应的百分比
+  const getPercentageFromEvent = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!containerRef.current) return 0;
+    const rect = containerRef.current.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const percentage = (clickX / rect.width) * 100;
-    onSeek(Math.max(0, Math.min(100, percentage)));
-  };
+    return Math.max(0, Math.min(100, percentage));
+  }, []);
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+  // 处理点击跳转
+  const handleClick = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!onSeek || isDragging) return;
+    const percentage = getPercentageFromEvent(e);
+    onSeek(percentage);
+  }, [onSeek, isDragging, getPercentageFromEvent]);
+
+  // 开始拖拽
+  const handleMouseDown = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
     setIsDragging(true);
-    handleClick(e);
-  };
+    dragStartRef.current = Date.now();
+    const percentage = getPercentageFromEvent(e);
+    setThumbPosition(percentage);
+  }, [getPercentageFromEvent]);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDragging || !onSeek) return;
-    handleClick(e);
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  React.useEffect(() => {
+  // 拖拽中
+  const handleMouseMove = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (isDragging) {
-      const handleGlobalMouseUp = () => setIsDragging(false);
-      document.addEventListener('mouseup', handleGlobalMouseUp);
-      return () => document.removeEventListener('mouseup', handleGlobalMouseUp);
+      const percentage = getPercentageFromEvent(e);
+      setThumbPosition(percentage);
+      // 拖拽时实时更新音频位置
+      if (onSeek) {
+        onSeek(percentage);
+      }
+    } else if (isHovered) {
+      // 悬停时更新拖拽球位置，但不跳转音频
+      const percentage = getPercentageFromEvent(e);
+      setThumbPosition(percentage);
+    }
+  }, [isDragging, isHovered, getPercentageFromEvent, onSeek]);
+
+  // 结束拖拽
+  const handleMouseUp = React.useCallback(() => {
+    if (isDragging) {
+      const dragDuration = Date.now() - dragStartRef.current;
+      // 如果拖拽时间很短，视为点击
+      if (dragDuration < 150) {
+        // 点击逻辑已在 mousedown 中处理
+      }
+      setIsDragging(false);
     }
   }, [isDragging]);
 
+  // 鼠标进入
+  const handleMouseEnter = React.useCallback(() => {
+    setIsHovered(true);
+    if (!isDragging) {
+      setThumbPosition(progress);
+    }
+  }, [progress, isDragging]);
+
+  // 鼠标离开
+  const handleMouseLeave = React.useCallback(() => {
+    setIsHovered(false);
+    if (!isDragging) {
+      setThumbPosition(progress);
+    }
+  }, [progress, isDragging]);
+
+  // 全局鼠标事件处理
+  React.useEffect(() => {
+    if (isDragging) {
+      const handleGlobalMouseUp = () => setIsDragging(false);
+      const handleGlobalMouseMove = (e: MouseEvent) => {
+        if (!containerRef.current) return;
+        const rect = containerRef.current.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const percentage = (mouseX / rect.width) * 100;
+        const clampedPercentage = Math.max(0, Math.min(100, percentage));
+        setThumbPosition(clampedPercentage);
+        if (onSeek) {
+          onSeek(clampedPercentage);
+        }
+      };
+
+      document.addEventListener('mouseup', handleGlobalMouseUp);
+      document.addEventListener('mousemove', handleGlobalMouseMove);
+      
+      return () => {
+        document.removeEventListener('mouseup', handleGlobalMouseUp);
+        document.removeEventListener('mousemove', handleGlobalMouseMove);
+      };
+    }
+  }, [isDragging, onSeek]);
+
+  // 同步播放进度到拖拽球位置
+  React.useEffect(() => {
+    if (!isDragging && !isHovered) {
+      setThumbPosition(progress);
+    }
+  }, [progress, isDragging, isHovered]);
+
   return (
     <ProgressContainer
+      ref={containerRef}
       className={className}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
+      onClick={handleClick}
     >
       <ProgressTrack />
       <ProgressBar $progress={progress} $isPlaying={isPlaying} />
       <ProgressThumb 
-        $progress={progress} 
-        $visible={isHovered || isDragging} 
+        $position={thumbPosition} 
+        $visible={isHovered || isDragging}
+        $isDragging={isDragging}
       />
       <FloatingNotes $progress={progress} $isPlaying={isPlaying}>
         <MusicNote $delay={0}>🎵</MusicNote>
@@ -208,4 +296,6 @@ export const CuteProgressBar: React.FC<CuteProgressBarProps> = ({
       </FloatingNotes>
     </ProgressContainer>
   );
-};
+});
+
+CuteProgressBar.displayName = 'CuteProgressBar';

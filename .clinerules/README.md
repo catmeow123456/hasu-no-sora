@@ -83,6 +83,7 @@ yarn clean
 - `GET /api/albums/:id` - 获取专辑详情
 - `GET /api/images/:albumId/:filename` - 获取专辑封面
 - `GET /audio/:albumName/:filename` - 获取音频文件
+- `GET /api/lyrics/:albumName/:trackFilename` - 获取歌词文件 (LRC 格式)
 
 ### 开发接口 (需要认证)
 - `POST /api/rescan` - 强制重新扫描音乐库并清除缓存
@@ -131,7 +132,8 @@ music/
 4. **音量控制** - 可调节播放音量
 5. **进度控制** - 显示播放进度，支持拖拽跳转
 6. **专辑封面** - 自动识别并显示专辑封面
-7. **响应式设计** - 适配不同设备屏幕
+7. **歌词滚动** - LRC 格式歌词实时同步滚动显示
+8. **响应式设计** - 适配不同设备屏幕
 
 ## 🎯 AI 助手工作指导
 

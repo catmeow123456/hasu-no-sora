@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import session from 'express-session';
 import { MusicScanner } from './utils/musicScanner.js';
+import { LyricsScanner } from './utils/lyricsScanner.js';
 import { Album } from './types/index.js';
 
 // ES 模块中获取 __dirname 的替代方案
@@ -29,6 +30,9 @@ const STATIC_PATH = path.resolve(__dirname, '../../ui/dist');
 let musicLibrary: Album[] = [];
 let libraryCache: { albums: any[], timestamp: number } | null = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5分钟缓存
+
+// 歌词扫描器实例
+let lyricsScanner: LyricsScanner;
 
 // 中间件
 app.use(cors({
@@ -82,6 +86,7 @@ app.get('/audio/:albumName/:filename', requireAuth, (req, res) => {
 async function initializeMusicLibrary() {
   console.log('Scanning music library...');
   const scanner = new MusicScanner(MUSIC_PATH);
+  lyricsScanner = new LyricsScanner(MUSIC_PATH);
   musicLibrary = await scanner.scanLibrary();
   console.log(`Found ${musicLibrary.length} albums`);
 }
@@ -181,6 +186,44 @@ app.get('/api/images/:albumId/:filename', requireAuth, (req, res) => {
   });
 });
 
+// 获取歌词 - 添加认证保护
+app.get('/api/lyrics/:albumName/:trackFilename', requireAuth, async (req, res) => {
+  const { albumName, trackFilename } = req.params;
+  
+  try {
+    // 设置缓存头 - 开发时禁用缓存
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    
+    // 查找对应的 track 以获取 trackId
+    const album = musicLibrary.find(a => a.name === decodeURIComponent(albumName));
+    if (!album) {
+      return res.status(404).json({ error: 'Album not found' });
+    }
+    
+    const track = album.tracks.find(t => t.filename === decodeURIComponent(trackFilename));
+    if (!track) {
+      return res.status(404).json({ error: 'Track not found' });
+    }
+    
+    const lyrics = await lyricsScanner.getLyrics(
+      decodeURIComponent(albumName), 
+      decodeURIComponent(trackFilename), 
+      track.id
+    );
+    
+    if (!lyrics) {
+      return res.status(404).json({ error: 'Lyrics not found' });
+    }
+    
+    res.json(lyrics);
+  } catch (error) {
+    console.error('Error fetching lyrics:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // API 根路径 - 提供 API 信息
 app.get('/api', (req, res) => {
   res.json({
@@ -198,6 +241,7 @@ app.get('/api', (req, res) => {
         detail: 'GET /api/albums/:id',
         cover: 'GET /api/images/:albumId/:filename'
       },
+      lyrics: 'GET /api/lyrics/:albumName/:trackFilename',
       audio: 'GET /audio/:albumName/:filename',
       health: 'GET /api/health'
     },

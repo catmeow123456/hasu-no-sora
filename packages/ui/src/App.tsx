@@ -3,9 +3,11 @@ import styled, { ThemeProvider, createGlobalStyle } from 'styled-components';
 import { AlbumList } from './components/AlbumList';
 import { AlbumDetail } from './components/AlbumDetail';
 import { AudioPlayer } from './components/AudioPlayer';
+import { LyricsPanel } from './components/LyricsPanel';
 import { LoginForm } from './components/LoginForm';
 import { CuteLoadingSpinner } from './components/CuteLoadingSpinner';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
+import { useLyrics } from './hooks/useLyrics';
 import { useAuth } from './hooks/useAuth';
 import { theme } from './styles/theme';
 import { Track, Album } from './types';
@@ -101,6 +103,13 @@ function App() {
     formatTime,
   } = useAudioPlayer();
 
+  // 歌词功能
+  const {
+    lyrics,
+    isLoading: lyricsLoading,
+    error: lyricsError,
+  } = useLyrics(playerState.currentTrack, playerState.currentAlbum);
+
   const handleLogin = async (password: string) => {
     clearError();
     await login(password);
@@ -172,6 +181,17 @@ function App() {
       {!authLoading && isAuthenticated && (
         <AppContainer>
           {renderCurrentView()}
+          
+          {/* 歌词面板 - 只在有正在播放的歌曲时显示 */}
+          <LyricsPanel
+            lyrics={lyrics}
+            currentTime={playerState.currentTime}
+            isPlaying={playerState.isPlaying}
+            isLoading={lyricsLoading}
+            error={lyricsError}
+            trackTitle={playerState.currentTrack?.title}
+            initialState="preview"
+          />
           
           <AudioPlayer
             playerState={playerState}

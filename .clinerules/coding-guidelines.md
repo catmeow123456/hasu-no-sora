@@ -328,6 +328,42 @@ async scanLibrary(): Promise<Album[]> {
 - 文件存在性检查和错误处理
 - 支持的音频格式：`.mp3`, `.wav`, `.flac`, `.m4a`, `.ogg`
 - 支持的图片格式：`.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`
+- 支持的歌词格式：`.lrc` (LRC 格式，带时间戳)
+
+### LRC 歌词处理
+- 使用正则表达式解析时间戳：`/\[(\d{2}):(\d{2})(?:\.(\d{2}))?\]/g`
+- 支持标准 LRC 格式：`[mm:ss.xx]歌词文本` 或 `[mm:ss]歌词文本`
+- 跳过元数据行（如 `[ti:]`, `[ar:]`, `[al:]` 等）
+- 按时间戳排序歌词行，确保正确的播放顺序
+
+```typescript
+// ✅ 推荐 - LRC 解析实现
+parseLrcFile(content: string): LyricLine[] {
+  const lines: LyricLine[] = [];
+  const lrcLines = content.split('\n');
+  const timeRegex = /\[(\d{2}):(\d{2})(?:\.(\d{2}))?\]/g;
+  
+  for (const line of lrcLines) {
+    const trimmedLine = line.trim();
+    if (!trimmedLine || trimmedLine.match(/^\[[a-z]+:/i)) continue;
+    
+    const matches = [...trimmedLine.matchAll(timeRegex)];
+    if (matches.length === 0) continue;
+    
+    const text = trimmedLine.replace(timeRegex, '').trim();
+    
+    for (const match of matches) {
+      const [originalTime, minutes, seconds, centiseconds = '0'] = match;
+      const time = parseInt(minutes) * 60 + parseInt(seconds) + 
+                  parseInt(centiseconds.padEnd(2, '0')) / 100;
+      
+      lines.push({ time, text, originalTime });
+    }
+  }
+  
+  return lines.sort((a, b) => a.time - b.time);
+}
+```
 
 ## 📁 项目结构规范
 
@@ -435,6 +471,89 @@ yarn workspace @hasu/ui build
 - 检查端口占用（3001, 5173）
 - 音乐文件路径配置正确
 
+## 🎵 歌词功能开发指导
+
+### 歌词组件设计原则
+- **实时同步**: 歌词与音频播放进度精确同步
+- **性能优化**: 使用二分查找算法快速定位当前歌词行
+- **视觉效果**: 当前行高亮，已播放/未播放行不同透明度
+- **自动滚动**: 当前歌词行自动滚动到屏幕中央
+
+```typescript
+// ✅ 推荐 - 歌词组件结构
+export const LyricsDisplay: React.FC<LyricsDisplayProps> = React.memo(({
+  lyrics, currentTime, isPlaying, isLoading, error, trackTitle
+}) => {
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const currentLineRef = useRef<HTMLDivElement>(null);
+  
+  // 二分查找当前行
+  const getCurrentLineIndex = useCallback((time: number): number => {
+    if (!lyrics || lyrics.lines.length === 0) return -1;
+    // 二分查找实现...
+  }, [lyrics]);
+  
+  // 自动滚动到当前行
+  useEffect(() => {
+    if (currentLineRef.current && scrollAreaRef.current && isPlaying) {
+      // 滚动逻辑...
+    }
+  }, [currentLineIndex, isPlaying]);
+});
+```
+
+### Styled Components 动画优化
+- **使用 css 辅助函数**: 在 styled-components v4+ 中，keyframe 动画必须使用 `css` 辅助函数
+- **避免重绘**: 只对 `transform` 和 `opacity` 进行动画
+- **GPU 加速**: 使用 `transform: translateZ(0)` 启用硬件加速
+
+```typescript
+// ✅ 推荐 - 正确的 keyframe 使用
+import styled, { keyframes, css } from 'styled-components';
+
+const highlight = keyframes`
+  0%, 100% { 
+    background: linear-gradient(135deg, ${theme.colors.primary}20, ${theme.colors.secondary}20);
+    transform: scale(1);
+  }
+  50% { 
+    background: linear-gradient(135deg, ${theme.colors.primary}30, ${theme.colors.secondary}30);
+    transform: scale(1.02);
+  }
+`;
+
+const LyricLine = styled.div<{ $isCurrent: boolean }>`
+  ${props => props.$isCurrent && css`
+    animation: ${highlight} 2s ease-in-out infinite;
+    transform: scale(1.05);
+  `}
+`;
+```
+
+### 歌词 Hook 最佳实践
+- **错误处理**: 优雅处理 404 错误，不显示错误信息
+- **缓存优化**: 避免重复加载相同歌词
+- **性能优化**: 使用 useCallback 和 useMemo 缓存计算结果
+
+```typescript
+// ✅ 推荐 - 歌词 Hook 实现
+export const useLyrics = (currentTrack: Track | null, currentAlbum: Album | null) => {
+  const loadLyrics = useCallback(async (track: Track, album: Album) => {
+    try {
+      const lyricsData = await apiService.getLyrics(album.name, track.filename);
+      setLyrics(lyricsData);
+    } catch (err) {
+      // 404 错误不显示错误信息
+      if (err instanceof Error && err.message.includes('404')) {
+        setError(null);
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to load lyrics');
+      }
+    }
+  }, []);
+};
+```
+
 ## 📝 代码审查清单
 
 - [ ] TypeScript 类型定义完整且准确
@@ -445,3 +564,5 @@ yarn workspace @hasu/ui build
 - [ ] 性能优化措施到位
 - [ ] 代码注释清晰易懂
 - [ ] 测试覆盖关键功能
+- [ ] 歌词功能与音频播放同步准确
+- [ ] LRC 文件解析正确处理多语言字符

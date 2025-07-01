@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { parseBuffer } from 'music-metadata';
 import { Album, Track } from '../types/index.js';
+import { LyricsScanner } from './lyricsScanner.js';
 
 // ES 模块中获取 __dirname 的替代方案
 const __filename = fileURLToPath(import.meta.url);
@@ -15,9 +16,11 @@ interface AlbumDates {
 export class MusicScanner {
   private musicPath: string;
   private albumDates: AlbumDates = {};
+  private lyricsScanner: LyricsScanner;
 
   constructor(musicPath: string) {
     this.musicPath = musicPath;
+    this.lyricsScanner = new LyricsScanner(musicPath);
     this.loadAlbumDates();
   }
 
@@ -115,6 +118,9 @@ export class MusicScanner {
 
       // 按文件名排序
       tracks.sort((a, b) => a.filename.localeCompare(b.filename));
+
+      // 扫描歌词文件
+      await this.lyricsScanner.scanAlbumLyrics(albumName, tracks);
 
       return {
         id: this.generateId(albumName),

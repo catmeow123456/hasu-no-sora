@@ -1,4 +1,4 @@
-import { Album, AlbumSummary } from '../types';
+import { Album, AlbumSummary, Lyrics } from '../types';
 
 const API_BASE_URL = '/api';
 
@@ -31,6 +31,14 @@ class ApiService {
   getCoverImageUrl(albumId: string, filename: string): string {
     const encodedFilename = encodeURIComponent(filename);
     return `${API_BASE_URL}/images/${albumId}/${encodedFilename}`;
+  }
+
+  async getLyrics(albumName: string, trackFilename: string): Promise<Lyrics> {
+    const encodedAlbumName = encodeURIComponent(albumName);
+    const encodedFilename = encodeURIComponent(trackFilename);
+    // 添加时间戳参数防止缓存
+    const timestamp = Date.now();
+    return this.fetchJson<Lyrics>(`${API_BASE_URL}/lyrics/${encodedAlbumName}/${encodedFilename}?t=${timestamp}`);
   }
 
   async checkHealth(): Promise<{ status: string; albums: number; timestamp: string }> {

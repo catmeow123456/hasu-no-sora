@@ -4,6 +4,19 @@ export interface Track {
   filename: string;
   duration?: number;
   albumId: string;
+  hasLyrics?: boolean;
+}
+
+export interface LyricLine {
+  time: number;        // 时间戳（秒）
+  text: string;        // 歌词文本
+  originalTime: string; // 原始时间格式 [mm:ss.xx]
+}
+
+export interface Lyrics {
+  trackId: string;
+  lines: LyricLine[];
+  hasLyrics: boolean;
 }
 
 export interface Album {

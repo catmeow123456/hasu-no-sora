@@ -6,16 +6,28 @@ import { CuteButton } from './CuteButton';
 import { CuteProgressBar } from './CuteProgressBar';
 import { CuteVolumeSlider } from './CuteVolumeSlider';
 
-// 优化的发光动画 - 降低频率和复杂度
+// 优化的发光动画 - 使用 transform 替代 box-shadow
 const glow = keyframes`
-  0%, 100% { box-shadow: ${theme.shadows.xl}; }
-  50% { box-shadow: ${theme.shadows.xl}, 0 0 15px rgba(255, 154, 139, 0.2); }
+  0%, 100% { 
+    transform: translateY(0px);
+    filter: brightness(1);
+  }
+  50% { 
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+  }
 `;
 
 // 简化的音符动画 - 只使用 transform 和 opacity
 const noteFloat = keyframes`
-  0%, 100% { transform: translateY(0px); opacity: 0.7; }
-  50% { transform: translateY(-8px); opacity: 1; }
+  0%, 100% { 
+    transform: translateY(0px) scale(1); 
+    opacity: 0.7; 
+  }
+  50% { 
+    transform: translateY(-6px) scale(1.1); 
+    opacity: 1; 
+  }
 `;
 
 const PlayerContainer = styled.div`
@@ -27,11 +39,12 @@ const PlayerContainer = styled.div`
   border-top: 3px solid transparent;
   border-image: ${theme.gradients.primary} 1;
   padding: ${theme.spacing.lg} ${theme.spacing.md};
-  animation: ${glow} 6s ease-in-out infinite;
+  animation: ${glow} 8s ease-in-out infinite;
   backdrop-filter: blur(15px);
   z-index: 1000;
   overflow: hidden;
-  will-change: box-shadow;
+  will-change: transform, filter;
+  box-shadow: ${theme.shadows.xl};
   
   &::before {
     content: '';
@@ -95,8 +108,10 @@ const FloatingNote = styled.div<{ $isPlaying: boolean }>`
   transform: translateY(-50%);
   font-size: 16px;
   opacity: ${props => props.$isPlaying ? 1 : 0};
-  animation: ${props => props.$isPlaying ? noteFloat : 'none'} 3s ease-in-out infinite;
+  animation: ${props => props.$isPlaying ? noteFloat : 'none'} 2.5s ease-in-out infinite;
   pointer-events: none;
+  will-change: transform, opacity;
+  transition: opacity ${theme.transitions.normal};
 `;
 
 const Controls = styled.div`
@@ -144,17 +159,33 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = React.memo(({
 }) => {
   const { currentTrack, currentAlbum, isPlaying, currentTime, duration, volume } = playerState;
 
+  // 缓存计算结果
+  const progress = React.useMemo(() => {
+    return duration > 0 ? (currentTime / duration) * 100 : 0;
+  }, [currentTime, duration]);
+
+  // 缓存导航状态
+  const navigationState = React.useMemo(() => {
+    if (!currentTrack || !currentAlbum) {
+      return { hasPrevious: false, hasNext: false, currentIndex: -1 };
+    }
+    
+    const currentIndex = currentAlbum.tracks.findIndex(track => track.id === currentTrack.id);
+    return {
+      currentIndex,
+      hasPrevious: currentIndex > 0,
+      hasNext: currentIndex < currentAlbum.tracks.length - 1
+    };
+  }, [currentTrack, currentAlbum]);
+
+  // 缓存事件处理器
+  const handleSeek = React.useCallback((percentage: number) => {
+    onSeek((percentage / 100) * duration);
+  }, [onSeek, duration]);
+
   if (!currentTrack || !currentAlbum) {
     return null;
   }
-
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
-
-
-  // 检查是否有上一首/下一首
-  const currentIndex = currentAlbum.tracks.findIndex(track => track.id === currentTrack.id);
-  const hasPrevious = currentIndex > 0;
-  const hasNext = currentIndex < currentAlbum.tracks.length - 1;
 
   return (
     <PlayerContainer>
@@ -168,7 +199,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = React.memo(({
         <Controls>
           <CuteButton 
             onClick={onPrevious}
-            disabled={!hasPrevious}
+            disabled={!navigationState.hasPrevious}
             title="上一首"
             size="small"
             variant="cute"
@@ -188,7 +219,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = React.memo(({
           
           <CuteButton 
             onClick={onNext}
-            disabled={!hasNext}
+            disabled={!navigationState.hasNext}
             title="下一首"
             size="small"
             variant="cute"
@@ -201,7 +232,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = React.memo(({
           <TimeDisplay>{formatTime(currentTime)}</TimeDisplay>
           <CuteProgressBar
             progress={progress}
-            onSeek={(percentage) => onSeek((percentage / 100) * duration)}
+            onSeek={handleSeek}
             isPlaying={isPlaying}
           />
           <TimeDisplay>{formatTime(duration)}</TimeDisplay>
