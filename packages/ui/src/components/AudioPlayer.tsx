@@ -105,32 +105,6 @@ const Controls = styled.div`
   gap: ${theme.spacing.sm};
 `;
 
-const ControlButton = styled.button<{ primary?: boolean }>`
-  width: ${props => props.primary ? '48px' : '40px'};
-  height: ${props => props.primary ? '48px' : '40px'};
-  border-radius: ${theme.borderRadius.full};
-  border: none;
-  background: ${props => props.primary ? theme.gradients.primary : theme.colors.surfaceHover};
-  color: ${props => props.primary ? 'white' : theme.colors.text.primary};
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: ${props => props.primary ? theme.fontSizes.lg : theme.fontSizes.base};
-  transition: all ${theme.transitions.fast};
-  box-shadow: ${props => props.primary ? theme.shadows.md : 'none'};
-
-  &:hover {
-    transform: scale(1.05);
-    box-shadow: ${theme.shadows.lg};
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-  }
-`;
 
 const ProgressSection = styled.div`
   flex: 2;
@@ -147,57 +121,7 @@ const TimeDisplay = styled.span`
   text-align: center;
 `;
 
-const ProgressContainer = styled.div`
-  flex: 1;
-  height: 6px;
-  background: ${theme.colors.border};
-  border-radius: ${theme.borderRadius.full};
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-`;
 
-const ProgressBar = styled.div<{ progress: number }>`
-  height: 100%;
-  background: ${theme.gradients.primary};
-  border-radius: ${theme.borderRadius.full};
-  width: ${props => props.progress}%;
-  transition: width 0.1s ease-out;
-`;
-
-const VolumeSection = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${theme.spacing.sm};
-  min-width: 120px;
-`;
-
-const VolumeSlider = styled.input`
-  flex: 1;
-  height: 4px;
-  background: ${theme.colors.border};
-  border-radius: ${theme.borderRadius.full};
-  outline: none;
-  cursor: pointer;
-
-  &::-webkit-slider-thumb {
-    appearance: none;
-    width: 16px;
-    height: 16px;
-    background: ${theme.colors.primary};
-    border-radius: 50%;
-    cursor: pointer;
-  }
-
-  &::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    background: ${theme.colors.primary};
-    border-radius: 50%;
-    cursor: pointer;
-    border: none;
-  }
-`;
 
 interface AudioPlayerProps {
   playerState: PlayerState;
@@ -226,18 +150,6 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = React.memo(({
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const percentage = clickX / rect.width;
-    const newTime = percentage * duration;
-    onSeek(newTime);
-  };
-
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newVolume = parseFloat(e.target.value);
-    onVolumeChange(newVolume);
-  };
 
   // 检查是否有上一首/下一首
   const currentIndex = currentAlbum.tracks.findIndex(track => track.id === currentTrack.id);

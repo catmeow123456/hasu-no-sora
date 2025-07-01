@@ -1,29 +1,71 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import session from 'express-session';
 import { MusicScanner } from './utils/musicScanner';
 import { Album } from './types';
 
+// 扩展 session 类型
+declare module 'express-session' {
+  interface SessionData {
+    authenticated?: boolean;
+  }
+}
+
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.NODE_ENV === 'production' ? 3000 : 3001;
 
 // 音乐文件路径 - 指向项目根目录的音乐文件夹
 const MUSIC_PATH = path.resolve(__dirname, '../../../music');
+
+// 前端静态文件路径
+const STATIC_PATH = path.resolve(__dirname, '../../ui/dist');
 
 let musicLibrary: Album[] = [];
 let libraryCache: { albums: any[], timestamp: number } | null = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5分钟缓存
 
 // 中间件
-app.use(cors());
+app.use(cors({
+  credentials: true, // 允许携带 cookie
+  origin: true
+}));
 app.use(express.json());
 
-// 静态文件服务 - 提供音频文件，添加缓存头
-app.use('/audio', express.static(MUSIC_PATH, {
-  maxAge: '1d', // 音频文件缓存1天
-  etag: true,
-  lastModified: true
-}));
+// Session 配置
+app.use(session({
+  secret: 'hasu-no-sora-secret-key-2024',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: false, // 开发环境设为 false，生产环境应设为 true
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24小时
+  }
+}) as any);
+
+// 认证中间件
+const requireAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (req.session && req.session.authenticated) {
+    return next();
+  }
+  return res.status(401).json({ error: 'Authentication required' });
+};
+
+// 音频文件服务 - 添加认证保护
+app.get('/audio/:albumName/:filename', requireAuth, (req, res) => {
+  const { albumName, filename } = req.params;
+  const audioPath = path.join(MUSIC_PATH, albumName, filename);
+  
+  // 设置缓存头
+  res.set('Cache-Control', 'public, max-age=86400'); // 1天缓存
+  
+  res.sendFile(audioPath, (err) => {
+    if (err) {
+      res.status(404).json({ error: 'Audio file not found' });
+    }
+  });
+});
 
 // 初始化音乐库
 async function initializeMusicLibrary() {
@@ -35,8 +77,36 @@ async function initializeMusicLibrary() {
 
 // API 路由
 
-// 获取所有专辑 - 添加缓存
-app.get('/api/albums', (req, res) => {
+// 登录接口
+app.post('/api/auth/login', (req, res) => {
+  const { password } = req.body;
+  
+  if (password === 'hasu-no-sora') {
+    req.session.authenticated = true;
+    res.json({ success: true, message: 'Login successful' });
+  } else {
+    res.status(401).json({ success: false, message: 'Invalid password' });
+  }
+});
+
+// 登出接口
+app.post('/api/auth/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Logout failed' });
+    }
+    res.json({ success: true, message: 'Logout successful' });
+  });
+});
+
+// 检查认证状态
+app.get('/api/auth/status', (req, res) => {
+  const isAuthenticated = req.session && req.session.authenticated;
+  res.json({ authenticated: isAuthenticated });
+});
+
+// 获取所有专辑 - 添加缓存和认证保护
+app.get('/api/albums', requireAuth, (req, res) => {
   // 设置缓存头
   res.set('Cache-Control', 'public, max-age=300'); // 5分钟缓存
   
@@ -71,8 +141,8 @@ app.get('/api/albums', (req, res) => {
   res.json(albumsWithoutTracks);
 });
 
-// 获取特定专辑详情 - 添加缓存
-app.get('/api/albums/:id', (req, res) => {
+// 获取特定专辑详情 - 添加缓存和认证保护
+app.get('/api/albums/:id', requireAuth, (req, res) => {
   // 设置缓存头
   res.set('Cache-Control', 'public, max-age=600'); // 10分钟缓存
   
@@ -83,8 +153,8 @@ app.get('/api/albums/:id', (req, res) => {
   res.json(album);
 });
 
-// 获取专辑封面图片
-app.get('/api/images/:albumId/:filename', (req, res) => {
+// 获取专辑封面图片 - 添加认证保护
+app.get('/api/images/:albumId/:filename', requireAuth, (req, res) => {
   const { albumId, filename } = req.params;
   const album = musicLibrary.find(a => a.id === albumId);
   
@@ -100,6 +170,31 @@ app.get('/api/images/:albumId/:filename', (req, res) => {
   });
 });
 
+// API 根路径 - 提供 API 信息
+app.get('/api', (req, res) => {
+  res.json({
+    name: 'Hasu no Sora Music API',
+    version: '1.0.0',
+    status: 'ok',
+    endpoints: {
+      auth: {
+        login: 'POST /api/auth/login',
+        logout: 'POST /api/auth/logout',
+        status: 'GET /api/auth/status'
+      },
+      albums: {
+        list: 'GET /api/albums',
+        detail: 'GET /api/albums/:id',
+        cover: 'GET /api/images/:albumId/:filename'
+      },
+      audio: 'GET /audio/:albumName/:filename',
+      health: 'GET /api/health'
+    },
+    albums: musicLibrary.length,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // 健康检查
 app.get('/api/health', (req, res) => {
   res.json({ 
@@ -107,6 +202,22 @@ app.get('/api/health', (req, res) => {
     albums: musicLibrary.length,
     timestamp: new Date().toISOString()
   });
+});
+
+// 静态文件服务 - 提供前端文件
+app.use('/', express.static(STATIC_PATH, {
+  maxAge: '1h', // 静态文件缓存1小时
+  etag: true,
+  lastModified: true
+}));
+
+// SPA 路由回退 - 处理前端路由
+app.get('*', (req, res) => {
+  // 排除 API 路由和音频文件路由
+  if (req.path.startsWith('/api') || req.path.startsWith('/audio')) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  res.sendFile(path.join(STATIC_PATH, 'index.html'));
 });
 
 // 启动服务器

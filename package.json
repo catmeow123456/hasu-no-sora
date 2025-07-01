@@ -8,9 +8,19 @@
   ],
   "scripts": {
     "dev": "concurrently \"yarn workspace @hasu/server dev\" \"yarn workspace @hasu/ui dev\"",
-    "build": "yarn workspace @hasu/ui build",
-    "start": "yarn workspace @hasu/server start",
-    "clean": "rm -rf node_modules packages/*/node_modules packages/*/dist"
+    "build": "yarn clean:dist && yarn workspace @hasu/ui build && yarn workspace @hasu/server build",
+    "build:prod": "NODE_ENV=production yarn build",
+    "start": "NODE_ENV=production yarn workspace @hasu/server start",
+    "start:prod": "NODE_ENV=production PORT=3000 yarn workspace @hasu/server start",
+    "preview": "yarn build && yarn workspace @hasu/ui preview",
+    "clean": "rm -rf node_modules packages/*/node_modules packages/*/dist",
+    "clean:dist": "rm -rf packages/*/dist 2>/dev/null || true",
+    "test:build": "yarn build && echo '✅ Build successful'",
+    "docker:build": "docker build -t hasu-no-sora .",
+    "docker:run": "docker run -p 3000:3000 -v ./music:/app/music hasu-no-sora",
+    "docker:compose:up": "docker compose up -d",
+    "docker:compose:down": "docker compose down",
+    "docker:compose:logs": "docker compose logs -f"
   },
   "devDependencies": {
     "concurrently": "^7.6.0",

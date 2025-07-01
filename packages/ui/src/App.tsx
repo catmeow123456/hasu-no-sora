@@ -3,7 +3,10 @@ import styled, { ThemeProvider, createGlobalStyle } from 'styled-components';
 import { AlbumList } from './components/AlbumList';
 import { AlbumDetail } from './components/AlbumDetail';
 import { AudioPlayer } from './components/AudioPlayer';
+import { LoginForm } from './components/LoginForm';
+import { CuteLoadingSpinner } from './components/CuteLoadingSpinner';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
+import { useAuth } from './hooks/useAuth';
 import { theme } from './styles/theme';
 import { Track, Album } from './types';
 
@@ -65,11 +68,27 @@ interface AppState {
   selectedAlbumId: string | null;
 }
 
+const LoadingContainer = styled.div`
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: ${({ theme }) => theme.gradients.background};
+`;
+
 function App() {
   const [appState, setAppState] = useState<AppState>({
     currentView: 'albums',
     selectedAlbumId: null,
   });
+
+  const {
+    isAuthenticated,
+    isLoading: authLoading,
+    error: authError,
+    login,
+    clearError,
+  } = useAuth();
 
   const {
     playerState,
@@ -81,6 +100,11 @@ function App() {
     playPrevious,
     formatTime,
   } = useAudioPlayer();
+
+  const handleLogin = async (password: string) => {
+    clearError();
+    await login(password);
+  };
 
   const handleAlbumSelect = (albumId: string) => {
     setAppState({
@@ -127,19 +151,39 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <GlobalStyle />
-      <AppContainer>
-        {renderCurrentView()}
-        
-        <AudioPlayer
-          playerState={playerState}
-          onPlayPause={togglePlayPause}
-          onPrevious={playPrevious}
-          onNext={playNext}
-          onSeek={seekTo}
-          onVolumeChange={setVolume}
-          formatTime={formatTime}
+      
+      {/* 认证加载状态 */}
+      {authLoading && (
+        <LoadingContainer>
+          <CuteLoadingSpinner />
+        </LoadingContainer>
+      )}
+      
+      {/* 未认证时显示登录界面 */}
+      {!authLoading && !isAuthenticated && (
+        <LoginForm
+          onLogin={handleLogin}
+          isLoading={authLoading}
+          error={authError}
         />
-      </AppContainer>
+      )}
+      
+      {/* 已认证时显示音乐播放器 */}
+      {!authLoading && isAuthenticated && (
+        <AppContainer>
+          {renderCurrentView()}
+          
+          <AudioPlayer
+            playerState={playerState}
+            onPlayPause={togglePlayPause}
+            onPrevious={playPrevious}
+            onNext={playNext}
+            onSeek={seekTo}
+            onVolumeChange={setVolume}
+            formatTime={formatTime}
+          />
+        </AppContainer>
+      )}
     </ThemeProvider>
   );
 }

@@ -8,6 +8,7 @@ Hasu no Sora 是一个温暖阳光风格的 Web 音乐播放器，专为 Hasu no
 
 ### 后端 (packages/server)
 - **Node.js** + **Express** + **TypeScript**
+- **express-session** - Session 管理和认证
 - **music-metadata** - 音频元数据解析
 - **CORS** - 跨域支持
 - **TSX** - TypeScript 执行器
@@ -67,15 +68,23 @@ yarn clean
 ## 🌐 服务端口
 
 - **前端开发服务器**: http://localhost:5173
-- **后端 API 服务器**: http://localhost:3001
+- **后端开发服务器**: http://localhost:3001
+- **生产服务器**: http://localhost:3000
 
 ## 📡 API 接口
 
-### 核心接口
+### 认证接口
+- `POST /api/auth/login` - 用户登录 (需要密码: `hasu-no-sora`)
+- `POST /api/auth/logout` - 用户登出
+- `GET /api/auth/status` - 检查认证状态
+
+### 核心接口 (需要认证)
 - `GET /api/albums` - 获取专辑列表
 - `GET /api/albums/:id` - 获取专辑详情
 - `GET /api/images/:albumId/:filename` - 获取专辑封面
 - `GET /audio/:albumName/:filename` - 获取音频文件
+
+### 公开接口
 - `GET /api/health` - 健康检查
 
 ## 🎨 设计系统
@@ -113,12 +122,13 @@ music/
 
 ## 🔧 核心功能
 
-1. **专辑浏览** - 网格展示所有专辑
-2. **音乐播放** - 支持播放/暂停、上一首/下一首
-3. **音量控制** - 可调节播放音量
-4. **进度控制** - 显示播放进度，支持拖拽跳转
-5. **专辑封面** - 自动识别并显示专辑封面
-6. **响应式设计** - 适配不同设备屏幕
+1. **密码保护** - 需要输入密码 `hasu-no-sora` 才能访问
+2. **专辑浏览** - 网格展示所有专辑
+3. **音乐播放** - 支持播放/暂停、上一首/下一首
+4. **音量控制** - 可调节播放音量
+5. **进度控制** - 显示播放进度，支持拖拽跳转
+6. **专辑封面** - 自动识别并显示专辑封面
+7. **响应式设计** - 适配不同设备屏幕
 
 ## 🎯 AI 助手工作指导
 

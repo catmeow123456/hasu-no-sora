@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { Album, Track } from '../types';
 import { apiService } from '../services/api';
 import { theme } from '../styles/theme';
-import { LazyImage } from './LazyImage';
 
 const Container = styled.div`
   padding: ${theme.spacing.xl};
@@ -220,11 +219,6 @@ export const AlbumDetail: React.FC<AlbumDetailProps> = React.memo(({
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   }, []);
 
-  const handleTrackSelect = useCallback((track: Track) => {
-    if (album) {
-      onTrackSelect(track, album);
-    }
-  }, [album, onTrackSelect]);
 
   if (loading) {
     return (

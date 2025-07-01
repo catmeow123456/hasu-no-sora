@@ -180,6 +180,8 @@ interface CuteButtonProps {
   isPlaying?: boolean;
   title?: string;
   className?: string;
+  type?: 'button' | 'submit' | 'reset';
+  style?: React.CSSProperties;
 }
 
 export const CuteButton: React.FC<CuteButtonProps> = ({
@@ -191,7 +193,9 @@ export const CuteButton: React.FC<CuteButtonProps> = ({
   isActive = false,
   isPlaying = false,
   title,
-  className
+  className,
+  type = 'button',
+  style
 }) => {
   return (
     <Button
@@ -203,6 +207,8 @@ export const CuteButton: React.FC<CuteButtonProps> = ({
       $isPlaying={isPlaying}
       title={title}
       className={className}
+      type={type}
+      style={style}
     >
       <ButtonContent $isPlaying={isPlaying}>
         {children}

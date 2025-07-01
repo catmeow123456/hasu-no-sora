@@ -208,7 +208,7 @@ export const Header: React.FC = () => {
         <StarDecoration top="85%" left="85%" delay={1.8}>⭐</StarDecoration>
       </TitleWrapper>
       
-      <Subtitle>这里写一句温暖阳光的话 ♪</Subtitle>
+      <Subtitle>いま、この瞬間を大切に。Bloom the smile, Bloom the dream. ♪</Subtitle>
     </HeaderContainer>
   );
 };
