@@ -2,6 +2,7 @@
   "name": "@hasu/server",
   "version": "1.0.0",
   "description": "Backend server for Hasu no Sora music player",
+  "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",

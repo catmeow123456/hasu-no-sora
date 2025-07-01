@@ -118,6 +118,7 @@ pids
 # Logs
 logs
 *.log
+nohup.out
 
 # Editor directories and files
 .idea/

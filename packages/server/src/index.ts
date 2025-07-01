@@ -1,9 +1,14 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import session from 'express-session';
-import { MusicScanner } from './utils/musicScanner';
-import { Album } from './types';
+import { MusicScanner } from './utils/musicScanner.js';
+import { Album } from './types/index.js';
+
+// ES 模块中获取 __dirname 的替代方案
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // 扩展 session 类型
 declare module 'express-session' {
@@ -32,8 +37,8 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 
-// 设置默认字符编码
-app.use((req, res, next) => {
+// 设置默认字符编码 - 只对 API 路由设置 JSON Content-Type
+app.use('/api', (req, res, next) => {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   next();
 });

@@ -1,6 +1,12 @@
 import fs from 'fs';
 import path from 'path';
-import { Album, Track } from '../types';
+import { fileURLToPath } from 'url';
+import { parseBuffer } from 'music-metadata';
+import { Album, Track } from '../types/index.js';
+
+// ES 模块中获取 __dirname 的替代方案
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 interface AlbumDates {
   [albumName: string]: string;
@@ -129,7 +135,6 @@ export class MusicScanner {
       // 使用 fs.readFile 读取文件为 Buffer，然后用 parseBuffer 解析
       // 这样可以确保传递给 music-metadata 的始终是正确的 Buffer 对象
       const buffer = await fs.promises.readFile(filePath);
-      const { parseBuffer } = await import('music-metadata');
       
       const metadata = await parseBuffer(buffer);
       
