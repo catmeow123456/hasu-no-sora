@@ -3,6 +3,13 @@ import styled, { css } from 'styled-components';
 import { theme, getSingerColorForState } from '../styles/theme';
 import { LyricsDisplay } from './LyricsDisplay';
 import type { Lyrics, LyricLine } from '../types';
+import {
+  sharedLyricsStyles,
+  PreviewLyricLine,
+  PreviewContent,
+  HintText,
+  SingerSegment
+} from './LyricsStyles';
 
 export type LyricsViewState = 'hidden' | 'preview' | 'fullscreen';
 
@@ -43,11 +50,18 @@ const PanelContainer = styled.div<{
   $dragOffset: number; 
   $isDragging: boolean;
 }>`
+  ${sharedLyricsStyles.backgroundGradient}
+  ${sharedLyricsStyles.borderStyle}
+  ${sharedLyricsStyles.shadowStyle}
+  ${sharedLyricsStyles.topHighlight}
+  
   position: fixed;
   left: 0;
   right: 0;
   bottom: 120px; /* AudioPlayer 上方 */
   z-index: 200;
+  border-radius: ${theme.borderRadius.xl} ${theme.borderRadius.xl} 0 0;
+  overflow: hidden;
   
   /* 根据状态计算高度和位移 */
   height: ${props => {
@@ -64,41 +78,9 @@ const PanelContainer = styled.div<{
   
   transition: ${props => props.$isDragging ? 'none' : `transform ${theme.transitions.normal}, height ${theme.transitions.normal}`};
   
-  /* 明亮清新的背景设计 - 与全屏模式保持一致 */
-  background: linear-gradient(135deg, 
-    ${theme.colors.surfaceHover}f0, 
-    ${theme.colors.background}f5,
-    ${theme.colors.border}e8
-  );
-  backdrop-filter: blur(20px) saturate(1.2);
-  border-top: 3px solid ${theme.colors.primary}60;
-  border-left: 1px solid ${theme.colors.primary}20;
-  border-right: 1px solid ${theme.colors.primary}20;
-  border-radius: ${theme.borderRadius.xl} ${theme.borderRadius.xl} 0 0;
-  box-shadow: 
-    ${theme.shadows.xl},
-    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    0 0 30px rgba(255, 122, 89, 0.15);
-  overflow: hidden;
-  
   /* 性能优化 */
   will-change: transform, height;
   backface-visibility: hidden;
-  
-  /* 增强视觉层次感 */
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, 
-      transparent, 
-      ${theme.colors.primary}80, 
-      transparent
-    );
-  }
 `;
 
 const DragHandle = styled.div`
@@ -150,32 +132,6 @@ const PanelContent = styled.div<{ $viewState: LyricsViewState }>`
   `}
 `;
 
-const PreviewContent = styled.div`
-  padding: ${theme.spacing.md};
-  text-align: center;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: ${theme.spacing.xs};
-`;
-
-const HintText = styled.div`
-  font-size: ${theme.fontSizes.xs};
-  color: ${theme.colors.text.secondary};
-  opacity: 0.7;
-  margin-top: ${theme.spacing.xs};
-  text-align: center;
-`;
-
-const PreviewLine = styled.div<{ $isCurrent?: boolean }>`
-  font-size: ${props => props.$isCurrent ? theme.fontSizes.lg : theme.fontSizes.base};
-  color: ${props => props.$isCurrent ? theme.colors.text.primary : theme.colors.text.secondary};
-  opacity: ${props => props.$isCurrent ? 1 : 0.90}; /* 与全屏模式保持一致 */
-  font-weight: ${props => props.$isCurrent ? 700 : 500}; /* 与全屏模式保持一致 */
-  transition: all ${theme.transitions.fast};
-  line-height: 1.4;
-`;
 
 const ToggleButton = styled.button<{ $viewState: LyricsViewState }>`
   position: absolute;
@@ -204,12 +160,6 @@ const ToggleButton = styled.button<{ $viewState: LyricsViewState }>`
   }
 `;
 
-// 预览模式下的歌手分段组件 - 与全屏模式保持一致
-const PreviewSingerSegment = styled.span<{ $singer?: string; $isCurrent?: boolean }>`
-  color: ${props => getSingerColorForState(props.$singer, props.$isCurrent)};
-  font-weight: ${props => props.$isCurrent ? '700' : '500'}; /* 与全屏模式保持一致 */
-  transition: color 0.3s ease;
-`;
 
 export const LyricsPanel: React.FC<LyricsPanelProps> = ({
   lyrics,
@@ -404,10 +354,10 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
     return (
       <>
         {line.segments.map((segment, segmentIndex) => (
-          <PreviewSingerSegment key={segmentIndex} $singer={segment.singer} $isCurrent={isCurrent}>
+          <SingerSegment key={segmentIndex} $singer={segment.singer} $isCurrent={isCurrent} $mode="preview">
             {segment.text}
             {segmentIndex < line.segments.length - 1 ? ' ' : ''}
-          </PreviewSingerSegment>
+          </SingerSegment>
         ))}
       </>
     );
@@ -418,7 +368,7 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
     if (!lyrics || lyrics.lines.length === 0) {
       return (
         <PreviewContent>
-          <PreviewLine $isCurrent>🎵 暂无歌词</PreviewLine>
+          <PreviewLyricLine $isCurrent>🎵 暂无歌词</PreviewLyricLine>
           <HintText>拖拽顶部横条或点击右上角按钮切换显示模式</HintText>
         </PreviewContent>
       );
@@ -432,9 +382,9 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
 
     return (
       <PreviewContent>
-        {prevLine && <PreviewLine>{renderPreviewLyricSegments(prevLine, false)}</PreviewLine>}
-        {currentLine && <PreviewLine $isCurrent>{renderPreviewLyricSegments(currentLine, true)}</PreviewLine>}
-        {nextLine && <PreviewLine>{renderPreviewLyricSegments(nextLine, false)}</PreviewLine>}
+        {prevLine && <PreviewLyricLine>{renderPreviewLyricSegments(prevLine, false)}</PreviewLyricLine>}
+        {currentLine && <PreviewLyricLine $isCurrent>{renderPreviewLyricSegments(currentLine, true)}</PreviewLyricLine>}
+        {nextLine && <PreviewLyricLine>{renderPreviewLyricSegments(nextLine, false)}</PreviewLyricLine>}
         <HintText>向上拖拽查看完整歌词 • 向下拖拽隐藏面板</HintText>
       </PreviewContent>
     );

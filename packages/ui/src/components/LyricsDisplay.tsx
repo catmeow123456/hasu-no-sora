@@ -1,165 +1,23 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import styled, { keyframes, css } from 'styled-components';
-import type { Lyrics, LyricLine, LyricSegment } from '../types';
-import { theme, getSingerColorForState } from '../styles/theme';
+import styled, { css } from 'styled-components';
+import type { Lyrics, LyricLine } from '../types';
+import { theme } from '../styles/theme';
 import { CuteLoadingSpinner } from './CuteLoadingSpinner';
+import {
+  LyricsContainerBase,
+  LyricsHeader,
+  LyricsTitle,
+  LyricsScrollArea,
+  FullscreenLyricLine,
+  EmptyState,
+  EmptyIcon,
+  SingerSegment
+} from './LyricsStyles';
 
-// 歌词行淡入动画
-const fadeIn = keyframes`
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-`;
-
-const LyricsContainer = styled.div<{ $isEmbedded?: boolean }>`
-  ${props => props.$isEmbedded ? css`
-    position: relative;
-    height: 100%;
-  ` : css`
-    position: fixed;
-    top: 80px; /* Header 下方 */
-    left: 0;
-    right: 0;
-    bottom: 120px; /* AudioPlayer 上方 */
-    z-index: 100;
-  `}
-  
-  /* 明亮清新的背景设计 - 调整为稍深的背景提高文字对比度 */
-  background: linear-gradient(135deg, 
-    ${theme.colors.surfaceHover}f0, 
-    ${theme.colors.background}f5,
-    ${theme.colors.border}e8
-  );
-  backdrop-filter: blur(15px) saturate(1.1);
-  border-top: 2px solid ${theme.colors.primary}50;
-  border-bottom: 2px solid ${theme.colors.primary}50;
-  box-shadow: 
-    inset 0 1px 0 rgba(255, 255, 255, 0.6),
-    0 0 20px rgba(255, 122, 89, 0.1);
-  overflow: hidden;
+// 全屏模式的容器样式
+const LyricsContainer = styled(LyricsContainerBase)`
   display: flex;
   flex-direction: column;
-`;
-
-const LyricsHeader = styled.div`
-  padding: ${theme.spacing.md};
-  background: linear-gradient(90deg, 
-    ${theme.colors.primary}15, 
-    ${theme.colors.secondary}15,
-    ${theme.colors.accent}12
-  );
-  border-bottom: 1px solid ${theme.colors.primary}30;
-  text-align: center;
-  position: relative;
-  
-  /* 增加顶部高光效果 */
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, 
-      transparent, 
-      rgba(255, 255, 255, 0.5), 
-      transparent
-    );
-  }
-`;
-
-const LyricsTitle = styled.h3`
-  font-family: ${theme.fonts.heading};
-  font-size: ${theme.fontSizes.lg};
-  color: ${theme.colors.text.primary};
-  margin: 0;
-  background: linear-gradient(45deg, ${theme.colors.primary}, ${theme.colors.secondary});
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-`;
-
-const LyricsScrollArea = styled.div`
-  flex: 1;
-  overflow-y: auto;
-  padding: ${theme.spacing.lg} ${theme.spacing.md};
-  scroll-behavior: smooth;
-  
-  /* 自定义滚动条 */
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-  
-  &::-webkit-scrollbar-track {
-    background: ${theme.colors.surface}40;
-    border-radius: 3px;
-  }
-  
-  &::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.secondary});
-    border-radius: 3px;
-  }
-  
-  &::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, ${theme.colors.secondary}, ${theme.colors.accent});
-  }
-`;
-
-const LyricLine = styled.div<{ $isCurrent: boolean; $isPast: boolean }>`
-  padding: ${theme.spacing.sm} ${theme.spacing.md};
-  margin: ${theme.spacing.xs} 0;
-  font-size: ${theme.fontSizes.lg};
-  line-height: 1.6;
-  text-align: center;
-  border-radius: ${theme.borderRadius.md};
-  transition: all 0.3s ease;
-  animation: ${fadeIn} 0.5s ease-out;
-  
-  /* 当前行突出样式 */
-  ${props => props.$isCurrent && css`
-    font-weight: 700; /* 增强字体权重 */
-    background: linear-gradient(135deg, 
-      ${theme.colors.primary}08, 
-      ${theme.colors.secondary}06
-    ); /* 温暖的背景渐变 */
-    padding: ${theme.spacing.md} ${theme.spacing.lg}; /* 增加内边距 */
-    box-shadow: 0 2px 8px ${theme.colors.shadow}; /* 柔和阴影 */
-    /* 移除 scale 变换，避免横向滚动条 */
-  `}
-  
-  /* 非当前行样式 */
-  ${props => !props.$isCurrent && css`
-    font-weight: 400;
-    opacity: 0.90; /* 适度降低透明度，保持可读性 */
-  `}
-  
-  /* 空行处理 */
-  ${props => !props.children && css`
-    height: ${theme.spacing.lg};
-  `}
-`;
-
-const EmptyState = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: ${theme.colors.text.secondary};
-  font-size: ${theme.fontSizes.lg};
-  text-align: center;
-  gap: ${theme.spacing.md};
-`;
-
-const EmptyIcon = styled.div`
-  font-size: 48px;
-  opacity: 0.5;
-`;
-
-// 歌手分段组件 - 增强版本，增加字体粗细提高浅色文字可读性
-const SingerSegment = styled.span<{ $singer?: string; $isCurrent?: boolean }>`
-  color: ${props => getSingerColorForState(props.$singer, props.$isCurrent)};
-  font-weight: ${props => props.$isCurrent ? '700' : '500'}; /* 非当前行也使用中等粗细 */
-  transition: color 0.3s ease;
 `;
 
 interface LyricsDisplayProps {
@@ -339,14 +197,14 @@ export const LyricsDisplay: React.FC<LyricsDisplayProps> = React.memo(({
       </LyricsHeader>
       <LyricsScrollArea ref={scrollAreaRef}>
         {lyrics.lines.map((line, index) => (
-          <LyricLine
+          <FullscreenLyricLine
             key={index}
             ref={index === currentLineIndex ? currentLineRef : undefined}
             $isCurrent={index === currentLineIndex}
             $isPast={index < currentLineIndex}
           >
             {renderLyricSegments(line, index === currentLineIndex)}
-          </LyricLine>
+          </FullscreenLyricLine>
         ))}
         {/* 底部留白，确保最后一行可以滚动到中央 */}
         <div style={{ height: '50vh' }} />
