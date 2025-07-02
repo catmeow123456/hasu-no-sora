@@ -178,6 +178,31 @@ export const getSingerName = (singer?: string): string => {
   return singerConfig ? singerConfig.name : singer;
 };
 
+// 生成歌手文字阴影
+export const getSingerTextShadow = (
+  singer?: string, 
+  isCurrent: boolean = false,
+  intensity: 'light' | 'normal' | 'strong' = 'normal'
+): string => {
+  if (!singer) return 'none';
+  
+  const singerColor = getSingerColor(singer);
+  
+  const shadows = {
+    light: isCurrent 
+      ? `0 1px 2px ${singerColor}40`
+      : `0 1px 1px ${singerColor}30`,
+    normal: isCurrent 
+      ? `0 1px 3px ${singerColor}40, 0 2px 6px ${singerColor}20`
+      : `0 1px 2px ${singerColor}30`,
+    strong: isCurrent 
+      ? `0 2px 4px ${singerColor}50, 0 3px 8px ${singerColor}25`
+      : `0 1px 3px ${singerColor}40`
+  };
+  
+  return shadows[intensity];
+};
+
 // Styled-components v6 theme declaration
 declare module 'styled-components' {
   export interface DefaultTheme extends Theme {}

@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import type { Lyrics, LyricLine, LyricSegment } from '../types';
-import { theme, getSingerColorForState } from '../styles/theme';
+import { theme, getSingerColorForState, getSingerTextShadow } from '../styles/theme';
 import { CuteLoadingSpinner } from './CuteLoadingSpinner';
 
 // 歌词行淡入动画
@@ -159,7 +159,10 @@ const EmptyIcon = styled.div`
 const SingerSegment = styled.span<{ $singer?: string; $isCurrent?: boolean }>`
   color: ${props => getSingerColorForState(props.$singer, props.$isCurrent)};
   font-weight: ${props => props.$isCurrent ? '700' : '400'};
-  transition: color 0.3s ease;
+  transition: color 0.3s ease, text-shadow 0.3s ease;
+  
+  /* 为有歌手标记的文本添加阴影效果 */
+  text-shadow: ${props => getSingerTextShadow(props.$singer, props.$isCurrent, 'normal')};
 `;
 
 interface LyricsDisplayProps {

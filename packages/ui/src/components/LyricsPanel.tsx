@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import styled, { css } from 'styled-components';
-import { theme, getSingerColorForState } from '../styles/theme';
+import { theme, getSingerColorForState, getSingerTextShadow } from '../styles/theme';
 import { LyricsDisplay } from './LyricsDisplay';
 import type { Lyrics, LyricLine } from '../types';
 
@@ -208,7 +208,10 @@ const ToggleButton = styled.button<{ $viewState: LyricsViewState }>`
 const PreviewSingerSegment = styled.span<{ $singer?: string; $isCurrent?: boolean }>`
   color: ${props => getSingerColorForState(props.$singer, props.$isCurrent)};
   font-weight: ${props => props.$isCurrent ? '600' : '400'};
-  transition: color 0.3s ease;
+  transition: color 0.3s ease, text-shadow 0.3s ease;
+  
+  /* 预览模式的歌手阴影效果 - 使用轻量级阴影 */
+  text-shadow: ${props => getSingerTextShadow(props.$singer, props.$isCurrent, 'light')};
 `;
 
 export const LyricsPanel: React.FC<LyricsPanelProps> = ({
