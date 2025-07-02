@@ -156,10 +156,10 @@ export const getSingerColorForState = (
   }
   
   // 当前行：使用饱和度更高的主色调
-  // 非当前行：使用透明度降低的次要色调
+  // 非当前行：使用透明度降低的主色调
   return isCurrent 
     ? singerConfig.primary 
-    : `${singerConfig.secondary}CC`; // 添加透明度
+    : `${singerConfig.primary}CC`; // 添加透明度
 };
 
 // 获取歌手背景色

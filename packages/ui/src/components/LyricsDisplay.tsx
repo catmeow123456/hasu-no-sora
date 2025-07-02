@@ -23,11 +23,11 @@ const LyricsContainer = styled.div<{ $isEmbedded?: boolean }>`
     z-index: 100;
   `}
   
-  /* 明亮清新的背景设计 */
+  /* 明亮清新的背景设计 - 调整为稍深的背景提高文字对比度 */
   background: linear-gradient(135deg, 
-    ${theme.colors.surface}f8, 
-    ${theme.colors.background}fa,
-    ${theme.colors.surfaceHover}f8
+    ${theme.colors.surfaceHover}f0, 
+    ${theme.colors.background}f5,
+    ${theme.colors.border}e8
   );
   backdrop-filter: blur(15px) saturate(1.1);
   border-top: 2px solid ${theme.colors.primary}50;
@@ -155,10 +155,10 @@ const EmptyIcon = styled.div`
   opacity: 0.5;
 `;
 
-// 歌手分段组件 - 增强版本，与 LyricLine 字体权重保持一致
+// 歌手分段组件 - 增强版本，增加字体粗细提高浅色文字可读性
 const SingerSegment = styled.span<{ $singer?: string; $isCurrent?: boolean }>`
   color: ${props => getSingerColorForState(props.$singer, props.$isCurrent)};
-  font-weight: ${props => props.$isCurrent ? '700' : '400'};
+  font-weight: ${props => props.$isCurrent ? '700' : '500'}; /* 非当前行也使用中等粗细 */
   transition: color 0.3s ease;
 `;
 

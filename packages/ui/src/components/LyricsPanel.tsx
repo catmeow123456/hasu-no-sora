@@ -64,11 +64,11 @@ const PanelContainer = styled.div<{
   
   transition: ${props => props.$isDragging ? 'none' : `transform ${theme.transitions.normal}, height ${theme.transitions.normal}`};
   
-  /* 明亮清新的背景设计 */
+  /* 明亮清新的背景设计 - 与全屏模式保持一致 */
   background: linear-gradient(135deg, 
-    ${theme.colors.surface}f5, 
-    ${theme.colors.background}f8,
-    ${theme.colors.surfaceHover}f5
+    ${theme.colors.surfaceHover}f0, 
+    ${theme.colors.background}f5,
+    ${theme.colors.border}e8
   );
   backdrop-filter: blur(20px) saturate(1.2);
   border-top: 3px solid ${theme.colors.primary}60;
@@ -171,8 +171,8 @@ const HintText = styled.div`
 const PreviewLine = styled.div<{ $isCurrent?: boolean }>`
   font-size: ${props => props.$isCurrent ? theme.fontSizes.lg : theme.fontSizes.base};
   color: ${props => props.$isCurrent ? theme.colors.text.primary : theme.colors.text.secondary};
-  opacity: ${props => props.$isCurrent ? 1 : 0.6};
-  font-weight: ${props => props.$isCurrent ? 600 : 400};
+  opacity: ${props => props.$isCurrent ? 1 : 0.90}; /* 与全屏模式保持一致 */
+  font-weight: ${props => props.$isCurrent ? 700 : 500}; /* 与全屏模式保持一致 */
   transition: all ${theme.transitions.fast};
   line-height: 1.4;
 `;
@@ -204,10 +204,10 @@ const ToggleButton = styled.button<{ $viewState: LyricsViewState }>`
   }
 `;
 
-// 预览模式下的歌手分段组件 - 简化版本，需要传入当前状态
+// 预览模式下的歌手分段组件 - 与全屏模式保持一致
 const PreviewSingerSegment = styled.span<{ $singer?: string; $isCurrent?: boolean }>`
   color: ${props => getSingerColorForState(props.$singer, props.$isCurrent)};
-  font-weight: ${props => props.$isCurrent ? '600' : '400'};
+  font-weight: ${props => props.$isCurrent ? '700' : '500'}; /* 与全屏模式保持一致 */
   transition: color 0.3s ease;
 `;
 
