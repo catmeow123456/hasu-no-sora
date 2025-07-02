@@ -478,6 +478,162 @@ yarn workspace @hasu/ui build
 - **性能优化**: 使用二分查找算法快速定位当前歌词行
 - **视觉效果**: 当前行高亮，已播放/未播放行不同透明度
 - **自动滚动**: 当前歌词行自动滚动到屏幕中央
+- **多歌手支持**: 支持 `@歌手@文本` 格式，不同歌手显示不同颜色
+
+### 多歌手歌词系统架构
+
+#### 类型定义
+```typescript
+// ✅ 推荐 - 歌词分段类型定义
+interface LyricSegment {
+  text: string;        // 文本片段
+  singer?: string;     // 歌手简称 (kozue, kaho, sayaka 等)
+}
+
+interface LyricLine {
+  time: number;        // 时间戳（秒）
+  text: string;        // 完整歌词文本
+  originalTime: string; // 原始时间格式 [mm:ss.xx]
+  segments: LyricSegment[]; // 歌词分段，支持多歌手
+}
+```
+
+#### 歌手配色系统
+```typescript
+// ✅ 推荐 - 歌手配色配置
+const singers = {
+  kozue: {
+    name: '乙宗梢',
+    primary: '#68be8d',    // 人鱼绿色
+    secondary: '#8ccfa8',  // 稍浅的人鱼绿
+    background: '#f0fff5'  // 绿色背景
+  },
+  kaho: {
+    name: '日野下花帆',
+    primary: '#f8b500',    // 太阳色
+    secondary: '#fcc332',  // 稍浅的太阳色
+    background: '#fff8e7'  // 温暖背景
+  },
+  // ... 其他歌手配置
+};
+
+// 歌手颜色获取工具函数
+export const getSingerColor = (singer?: string, fallbackColor: string = theme.colors.text.primary): string => {
+  if (!singer) return fallbackColor;
+  
+  const singerConfig = theme.singers[singer as keyof typeof theme.singers];
+  return singerConfig ? singerConfig.primary : fallbackColor;
+};
+```
+
+#### 歌词解析增强
+```typescript
+// ✅ 推荐 - 多歌手歌词解析
+private parseSegments(text: string): LyricSegment[] {
+  const segments: LyricSegment[] = [];
+  
+  // 歌手标记正则: @歌手名@文本内容
+  const singerRegex = /@([^@]+)@([^@]*?)(?=@|$)/g;
+  
+  let lastIndex = 0;
+  let match;
+  
+  while ((match = singerRegex.exec(text)) !== null) {
+    const [fullMatch, singer, segmentText] = match;
+    const matchStart = match.index;
+    
+    // 如果匹配前有未标记的文本，添加为无歌手片段
+    if (matchStart > lastIndex) {
+      const unmarkedText = text.slice(lastIndex, matchStart).trim();
+      if (unmarkedText) {
+        segments.push({ text: unmarkedText });
+      }
+    }
+    
+    // 添加带歌手标记的片段
+    if (segmentText.trim()) {
+      segments.push({
+        text: segmentText.trim(),
+        singer: singer.trim()
+      });
+    }
+    
+    lastIndex = matchStart + fullMatch.length;
+  }
+  
+  // 处理剩余文本...
+  return segments;
+}
+```
+
+#### 分段渲染组件
+```typescript
+// ✅ 推荐 - 歌手分段组件
+const SingerSegment = styled.span<{ $singer?: string }>`
+  color: ${props => getSingerColor(props.$singer, props.theme.colors.text.primary)};
+  font-weight: ${props => props.$singer ? '500' : 'inherit'};
+  transition: color 0.3s ease;
+  
+  /* 为有歌手标记的文本添加轻微的文字阴影增强可读性 */
+  ${props => props.$singer && css`
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  `}
+`;
+
+// 渲染歌词行的分段内容
+const renderLyricSegments = useCallback((line: LyricLine) => {
+  // 如果没有分段信息，回退到显示完整文本
+  if (!line.segments || line.segments.length === 0) {
+    return <SingerSegment>{line.text || '\u00A0'}</SingerSegment>;
+  }
+
+  // 渲染多个分段
+  return (
+    <>
+      {line.segments.map((segment, segmentIndex) => (
+        <SingerSegment key={segmentIndex} $singer={segment.singer}>
+          {segment.text}
+          {segmentIndex < line.segments.length - 1 ? ' ' : ''}
+        </SingerSegment>
+      ))}
+    </>
+  );
+}, []);
+```
+
+### 多歌手歌词最佳实践
+
+#### 解析性能优化
+- **正则表达式缓存**: 避免重复编译正则表达式
+- **分段缓存**: 缓存解析结果，避免重复解析
+- **批量处理**: 一次性解析整个歌词文件
+
+#### 渲染性能优化
+- **React.memo**: 为分段组件添加 memo 包装
+- **useCallback**: 缓存分段渲染函数
+- **虚拟化**: 对于长歌词考虑使用虚拟滚动
+
+#### 兼容性处理
+- **向后兼容**: 完全兼容标准 LRC 格式
+- **优雅降级**: 未知歌手使用默认颜色
+- **错误处理**: 解析失败时回退到原始文本
+
+#### 歌词格式规范
+```lrc
+# 支持的格式示例
+[00:12.34]@kozue@ひらひらと舞い散るのは
+[00:15.67]@kozue@幾千の刻の欠片たち  
+[00:18.90]@kaho@願いよ今こそ花となれ
+[01:05.44]@kozue@探そう @kaho@探そう @kozue@自分だけの音を
+[01:08.67]@kaho@咲かそう @kozue@咲かそう @kaho@声なき声も
+[01:12.00]普通的歌词（无歌手标记，正常显示）
+```
+
+#### 调试和测试
+- **单元测试**: 测试歌词解析逻辑
+- **视觉测试**: 验证不同歌手的颜色显示
+- **性能测试**: 测试大量分段的渲染性能
+- **兼容性测试**: 测试标准 LRC 格式的兼容性
 
 ```typescript
 // ✅ 推荐 - 歌词组件结构
@@ -556,6 +712,7 @@ export const useLyrics = (currentTrack: Track | null, currentAlbum: Album | null
 
 ## 📝 代码审查清单
 
+### 基础代码质量
 - [ ] TypeScript 类型定义完整且准确
 - [ ] React 组件遵循 Hooks 最佳实践
 - [ ] API 接口设计符合 RESTful 规范
@@ -564,5 +721,23 @@ export const useLyrics = (currentTrack: Track | null, currentAlbum: Album | null
 - [ ] 性能优化措施到位
 - [ ] 代码注释清晰易懂
 - [ ] 测试覆盖关键功能
+
+### 歌词功能专项检查
 - [ ] 歌词功能与音频播放同步准确
 - [ ] LRC 文件解析正确处理多语言字符
+- [ ] 多歌手标记 `@歌手@文本` 格式解析正确
+- [ ] 歌手配色系统工作正常，颜色显示准确
+- [ ] 全屏和折叠模式都支持多歌手颜色显示
+- [ ] 混合行（一行内多个歌手）渲染正确
+- [ ] 向后兼容标准 LRC 格式
+- [ ] 未知歌手优雅降级到默认颜色
+- [ ] 歌词分段组件性能优化到位（memo、useCallback）
+- [ ] 歌词解析错误处理完善
+- [ ] 前后端歌词类型定义同步（LyricSegment、LyricLine）
+
+### 性能和用户体验
+- [ ] 歌词滚动动画流畅，无卡顿
+- [ ] 歌手颜色过渡自然，视觉效果良好
+- [ ] 大量分段歌词渲染性能良好
+- [ ] 歌词加载状态和错误状态处理得当
+- [ ] 响应式设计在不同设备上表现良好

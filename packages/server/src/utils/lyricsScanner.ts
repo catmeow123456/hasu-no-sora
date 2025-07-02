@@ -1,12 +1,64 @@
 import fs from 'fs';
 import path from 'path';
-import { LyricLine, Lyrics, Track } from '../types/index.js';
+import { LyricLine, LyricSegment, Lyrics, Track } from '../types/index.js';
 
 export class LyricsScanner {
   private musicPath: string;
 
   constructor(musicPath: string) {
     this.musicPath = musicPath;
+  }
+
+  /**
+   * 解析歌词文本中的歌手标记
+   * 支持格式：@kozue@歌词文本 或 @kozue@部分1 @kaho@部分2
+   */
+  private parseSegments(text: string): LyricSegment[] {
+    const segments: LyricSegment[] = [];
+    
+    // 歌手标记正则: @歌手名@文本内容
+    const singerRegex = /@([^@]+)@([^@]*?)(?=@|$)/g;
+    
+    let lastIndex = 0;
+    let match;
+    
+    while ((match = singerRegex.exec(text)) !== null) {
+      const [fullMatch, singer, segmentText] = match;
+      const matchStart = match.index;
+      
+      // 如果匹配前有未标记的文本，添加为无歌手片段
+      if (matchStart > lastIndex) {
+        const unmarkedText = text.slice(lastIndex, matchStart).trim();
+        if (unmarkedText) {
+          segments.push({ text: unmarkedText });
+        }
+      }
+      
+      // 添加带歌手标记的片段
+      if (segmentText.trim()) {
+        segments.push({
+          text: segmentText.trim(),
+          singer: singer.trim()
+        });
+      }
+      
+      lastIndex = matchStart + fullMatch.length;
+    }
+    
+    // 如果没有找到任何歌手标记，或者最后还有未处理的文本
+    if (segments.length === 0 || lastIndex < text.length) {
+      const remainingText = text.slice(lastIndex).trim();
+      if (remainingText) {
+        segments.push({ text: remainingText });
+      }
+    }
+    
+    // 如果没有任何片段，返回整个文本作为无歌手片段
+    if (segments.length === 0 && text.trim()) {
+      segments.push({ text: text.trim() });
+    }
+    
+    return segments;
   }
 
   /**
@@ -32,6 +84,12 @@ export class LyricsScanner {
       // 提取歌词文本（移除所有时间戳）
       const text = trimmedLine.replace(timeRegex, '').trim();
       
+      // 解析歌词文本中的歌手标记
+      const segments = this.parseSegments(text);
+      
+      // 重新构建完整文本（去除歌手标记）
+      const cleanText = segments.map(segment => segment.text).join(' ').trim();
+      
       // 处理每个时间戳（一行可能有多个时间戳）
       for (const match of matches) {
         const [originalTime, minutes, seconds, centiseconds = '0'] = match;
@@ -42,8 +100,9 @@ export class LyricsScanner {
         
         lines.push({
           time,
-          text,
-          originalTime
+          text: cleanText,
+          originalTime,
+          segments
         });
       }
     }

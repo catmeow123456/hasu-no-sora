@@ -1,8 +1,8 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import styled, { css } from 'styled-components';
-import { theme } from '../styles/theme';
+import { theme, getSingerColorForState } from '../styles/theme';
 import { LyricsDisplay } from './LyricsDisplay';
-import type { Lyrics } from '../types';
+import type { Lyrics, LyricLine } from '../types';
 
 export type LyricsViewState = 'hidden' | 'preview' | 'fullscreen';
 
@@ -64,19 +64,41 @@ const PanelContainer = styled.div<{
   
   transition: ${props => props.$isDragging ? 'none' : `transform ${theme.transitions.normal}, height ${theme.transitions.normal}`};
   
+  /* 明亮清新的背景设计 */
   background: linear-gradient(135deg, 
-    ${theme.colors.background}f8, 
-    ${theme.colors.surfaceHover}f8
+    ${theme.colors.surface}f5, 
+    ${theme.colors.background}f8,
+    ${theme.colors.surfaceHover}f5
   );
-  backdrop-filter: blur(15px);
-  border-top: 2px solid ${theme.colors.primary}40;
-  border-radius: ${theme.borderRadius.lg} ${theme.borderRadius.lg} 0 0;
-  box-shadow: ${theme.shadows.xl};
+  backdrop-filter: blur(20px) saturate(1.2);
+  border-top: 3px solid ${theme.colors.primary}60;
+  border-left: 1px solid ${theme.colors.primary}20;
+  border-right: 1px solid ${theme.colors.primary}20;
+  border-radius: ${theme.borderRadius.xl} ${theme.borderRadius.xl} 0 0;
+  box-shadow: 
+    ${theme.shadows.xl},
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 0 30px rgba(255, 122, 89, 0.15);
   overflow: hidden;
   
   /* 性能优化 */
   will-change: transform, height;
   backface-visibility: hidden;
+  
+  /* 增强视觉层次感 */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, 
+      transparent, 
+      ${theme.colors.primary}80, 
+      transparent
+    );
+  }
 `;
 
 const DragHandle = styled.div`
@@ -180,6 +202,13 @@ const ToggleButton = styled.button<{ $viewState: LyricsViewState }>`
   &:active {
     transform: scale(0.95);
   }
+`;
+
+// 预览模式下的歌手分段组件 - 简化版本，需要传入当前状态
+const PreviewSingerSegment = styled.span<{ $singer?: string; $isCurrent?: boolean }>`
+  color: ${props => getSingerColorForState(props.$singer, props.$isCurrent)};
+  font-weight: ${props => props.$isCurrent ? '600' : '400'};
+  transition: color 0.3s ease;
 `;
 
 export const LyricsPanel: React.FC<LyricsPanelProps> = ({
@@ -364,6 +393,25 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
     }
   }, [panelState.isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
 
+  // 渲染歌词行的分段内容（预览模式专用）
+  const renderPreviewLyricSegments = useCallback((line: LyricLine, isCurrent: boolean = false) => {
+    // 如果没有分段信息，回退到显示完整文本
+    if (!line.segments || line.segments.length === 0) {
+      return line.text || '';
+    }
+
+    // 渲染多个分段
+    return (
+      <>
+        {line.segments.map((segment, segmentIndex) => (
+          <PreviewSingerSegment key={segmentIndex} $singer={segment.singer} $isCurrent={isCurrent}>
+            {segment.text}
+            {segmentIndex < line.segments.length - 1 ? ' ' : ''}
+          </PreviewSingerSegment>
+        ))}
+      </>
+    );
+  }, []);
 
   // 渲染预览内容
   const renderPreviewContent = () => {
@@ -384,9 +432,9 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
 
     return (
       <PreviewContent>
-        {prevLine && <PreviewLine>{prevLine.text}</PreviewLine>}
-        {currentLine && <PreviewLine $isCurrent>{currentLine.text}</PreviewLine>}
-        {nextLine && <PreviewLine>{nextLine.text}</PreviewLine>}
+        {prevLine && <PreviewLine>{renderPreviewLyricSegments(prevLine, false)}</PreviewLine>}
+        {currentLine && <PreviewLine $isCurrent>{renderPreviewLyricSegments(currentLine, true)}</PreviewLine>}
+        {nextLine && <PreviewLine>{renderPreviewLyricSegments(nextLine, false)}</PreviewLine>}
         <HintText>向上拖拽查看完整歌词 • 向下拖拽隐藏面板</HintText>
       </PreviewContent>
     );
