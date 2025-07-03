@@ -178,56 +178,19 @@ const HintText = styled.div`
 const PreviewLine = styled.div<{ $isCurrent?: boolean }>`
   font-size: ${props => props.$isCurrent ? theme.fontSizes.lg : theme.fontSizes.base};
   color: ${props => props.$isCurrent ? theme.colors.text.primary : theme.colors.text.secondary};
-  opacity: ${props => props.$isCurrent ? 1 : 0.90}; /* 与全屏模式保持一致 */
-  font-weight: ${props => props.$isCurrent ? 700 : 500}; /* 与全屏模式保持一致 */
-  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* 更自然的缓动曲线 */
+  opacity: ${props => props.$isCurrent ? 1 : 0.90};
+  font-weight: ${props => props.$isCurrent ? 700 : 500};
+  transition: all 0.3s ease;
   line-height: 1.4;
-  min-height: 1.4em; /* 确保空行也有最小高度 */
+  min-height: 1.4em;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
   
-  /* 性能优化 */
-  will-change: transform, opacity, color, font-size, font-weight;
-  backface-visibility: hidden;
-  
-  /* 微妙的垂直位移动画 */
-  transform: ${props => props.$isCurrent ? 'translateY(-1px)' : 'translateY(0)'};
-  
-  /* 添加平滑的文字变化效果 */
+  /* 简化的当前行高亮效果 */
   ${props => props.$isCurrent && css`
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    
-    /* 微妙的背景高亮 */
-    &::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 120%;
-      height: 120%;
-      background: linear-gradient(135deg, 
-        ${theme.colors.primary}08, 
-        ${theme.colors.secondary}06
-      );
-      border-radius: ${theme.borderRadius.md};
-      transform: translate(-50%, -50%);
-      opacity: 0;
-      animation: fadeInBackground 0.3s ease-out forwards;
-      z-index: -1;
-    }
-    
-    @keyframes fadeInBackground {
-      from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-      to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-    }
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   `}
-  
-  /* 内容变化时的淡入效果 */
-  & > * {
-    transition: opacity 0.3s ease-in-out;
-  }
 `;
 
 const ToggleButton = styled.button<{ $viewState: LyricsViewState }>`
@@ -317,6 +280,13 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
   // 更新显示的歌词行，实现平滑过渡
   useEffect(() => {
     if (!lyrics || lyrics.lines.length === 0 || panelState.viewState !== 'preview') {
+      // 重置状态
+      setDisplayedLines({
+        first: null,
+        second: null,
+        third: null,
+        currentPosition: -1,
+      });
       return;
     }
 
@@ -362,25 +332,23 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
       clearTimeout(transitionTimeoutRef.current);
     }
 
-    // 检查是否需要更新显示内容
+    // 检查是否需要更新显示内容（移除 displayedLines 依赖避免无限循环）
     const needsUpdate = 
-      displayedLines.first !== newFirst ||
-      displayedLines.second !== newSecond ||
-      displayedLines.third !== newThird ||
+      displayedLines.first?.text !== newFirst?.text ||
+      displayedLines.second?.text !== newSecond?.text ||
+      displayedLines.third?.text !== newThird?.text ||
       displayedLines.currentPosition !== newCurrentPosition;
 
     if (needsUpdate) {
-      // 使用延迟更新来实现平滑过渡
-      transitionTimeoutRef.current = setTimeout(() => {
-        setDisplayedLines({
-          first: newFirst,
-          second: newSecond,
-          third: newThird,
-          currentPosition: newCurrentPosition,
-        });
-      }, 50); // 50ms 延迟，让 CSS 过渡更自然
+      // 立即更新，移除不必要的延迟
+      setDisplayedLines({
+        first: newFirst,
+        second: newSecond,
+        third: newThird,
+        currentPosition: newCurrentPosition,
+      });
     }
-  }, [lyrics, currentLineIndex, panelState.viewState, displayedLines]);
+  }, [lyrics, currentLineIndex, panelState.viewState]); // 移除 displayedLines 依赖
 
   // 清理定时器
   useEffect(() => {
