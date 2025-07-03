@@ -532,8 +532,6 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
         <PreviewContent>
           <LyricsContainer>
             <PreviewLine>🎵 暂无歌词</PreviewLine>
-            <PreviewLine>&nbsp;</PreviewLine>
-            <PreviewLine>&nbsp;</PreviewLine>
           </LyricsContainer>
           <HintText>拖拽顶部横条或点击右上角按钮切换显示模式</HintText>
         </PreviewContent>
