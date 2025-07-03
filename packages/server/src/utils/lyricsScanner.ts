@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { LyricLine, LyricSegment, Lyrics, Track } from '../types/index.js';
+import { LyricLine, LyricSegment, Lyrics, Track, SingerType } from '../types/index.js';
 
 export class LyricsScanner {
   private musicPath: string;
@@ -36,9 +36,10 @@ export class LyricsScanner {
       
       // 添加带歌手标记的片段
       if (segmentText.trim()) {
+        const trimmedSinger = singer.trim();
         segments.push({
           text: segmentText.trim(),
-          singer: singer.trim()
+          singer: trimmedSinger as SingerType
         });
       }
       
