@@ -1,3 +1,8 @@
+export type SingerType = 
+  | 'kozue' | 'kaho' | 'sayaka' | 'tsuzuri' | 'rurino' 
+  | 'megumi' | 'ginko' | 'kosuzu' | 'himena'
+  | 'cerise' | 'dollche' | 'miracra'; // 新增小组
+
 export interface Track {
   id: string;
   title: string;
@@ -9,7 +14,7 @@ export interface Track {
 
 export interface LyricSegment {
   text: string;        // 文本片段
-  singer?: string;     // 歌手简称 (kozue, kaho, sayaka 等)
+  singer?: SingerType; // 歌手简称，支持个人歌手和小组
 }
 
 export interface LyricLine {

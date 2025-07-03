@@ -125,6 +125,25 @@ export const theme = {
       primary: '#9d8de2',    // 糖果紫色
       secondary: '#b5a8e8',  // 稍浅的紫色
       background: '#f8f6ff'  // 紫色背景
+    },
+    // 小组配色
+    cerise: {
+      name: 'Cerise Bouquet',
+      primary: '#da645f',     // 玫瑰色
+      secondary: '#e8857f',   // 稍浅的玫瑰色  
+      background: '#fdf5f4'   // 温暖的玫瑰背景
+    },
+    dollche: {
+      name: 'DOLLCHESTRA', 
+      primary: '#163bca',     // 蓝色
+      secondary: '#4a6bd4',   // 稍浅的蓝色
+      background: '#f0f4ff'   // 清爽的蓝色背景
+    },
+    miracra: {
+      name: 'Mira-Cra Park!',
+      primary: '#F3B171',     // 黄色
+      secondary: '#f6c48a',   // 稍浅的黄色
+      background: '#fffbf0'   // 温暖的黄色背景
     }
   },
 };
