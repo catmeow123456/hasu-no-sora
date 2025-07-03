@@ -156,23 +156,38 @@ const PreviewContent = styled.div`
   height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  position: relative;
 `;
 
-const LyricsContainer = styled.div`
+const LyricsContainer = styled.div<{ $hasLyrics?: boolean }>`
   display: flex;
   flex-direction: column;
   gap: ${theme.spacing.xs};
-  flex: 1;
-  justify-content: center;
+  align-items: center;
+  
+  ${props => props.$hasLyrics ? css`
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+  ` : css`
+    flex: 1;
+    justify-content: center;
+    width: 100%;
+  `}
 `;
 
 const HintText = styled.div`
   font-size: ${theme.fontSizes.xs};
   color: ${theme.colors.text.secondary};
   opacity: 0.7;
-  margin-top: ${theme.spacing.xs};
   text-align: center;
+  position: absolute;
+  bottom: ${theme.spacing.md};
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
 `;
 
 const PreviewLine = styled.div<{ $isCurrent?: boolean }>`
@@ -530,12 +545,9 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
     if (!lyrics || lyrics.lines.length === 0) {
       return (
         <PreviewContent>
-          <LyricsContainer>
+          <LyricsContainer $hasLyrics={false}>
             <PreviewLine>🎵 暂无歌词</PreviewLine>
-            <PreviewLine>&nbsp;</PreviewLine>
-            <PreviewLine>&nbsp;</PreviewLine>
           </LyricsContainer>
-          <HintText>拖拽顶部横条或点击右上角按钮切换显示模式</HintText>
         </PreviewContent>
       );
     }
@@ -545,7 +557,7 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
 
     return (
       <PreviewContent>
-        <LyricsContainer>
+        <LyricsContainer $hasLyrics={true}>
           <PreviewLine $isCurrent={currentPosition === 0}>
             {first ? renderPreviewLyricSegments(first, currentPosition === 0) : <span>&nbsp;</span>}
           </PreviewLine>
@@ -556,7 +568,6 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
             {third ? renderPreviewLyricSegments(third, currentPosition === 2) : <span>&nbsp;</span>}
           </PreviewLine>
         </LyricsContainer>
-        <HintText>向上拖拽查看完整歌词 • 向下拖拽隐藏面板</HintText>
       </PreviewContent>
     );
   };
