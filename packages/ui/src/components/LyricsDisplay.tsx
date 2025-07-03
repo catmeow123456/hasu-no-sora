@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import styled, { keyframes, css } from 'styled-components';
-import type { Lyrics, LyricLine, LyricSegment } from '../types';
+import type { Lyrics, LyricLine } from '../types';
 import { theme, getSingerColorForState } from '../styles/theme';
 import { CuteLoadingSpinner } from './CuteLoadingSpinner';
 

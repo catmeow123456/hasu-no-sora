@@ -156,8 +156,15 @@ const PreviewContent = styled.div`
   height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: space-between;
+`;
+
+const LyricsContainer = styled.div`
+  display: flex;
+  flex-direction: column;
   gap: ${theme.spacing.xs};
+  flex: 1;
+  justify-content: center;
 `;
 
 const HintText = styled.div`
@@ -173,8 +180,54 @@ const PreviewLine = styled.div<{ $isCurrent?: boolean }>`
   color: ${props => props.$isCurrent ? theme.colors.text.primary : theme.colors.text.secondary};
   opacity: ${props => props.$isCurrent ? 1 : 0.90}; /* 与全屏模式保持一致 */
   font-weight: ${props => props.$isCurrent ? 700 : 500}; /* 与全屏模式保持一致 */
-  transition: all ${theme.transitions.fast};
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* 更自然的缓动曲线 */
   line-height: 1.4;
+  min-height: 1.4em; /* 确保空行也有最小高度 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  
+  /* 性能优化 */
+  will-change: transform, opacity, color, font-size, font-weight;
+  backface-visibility: hidden;
+  
+  /* 微妙的垂直位移动画 */
+  transform: ${props => props.$isCurrent ? 'translateY(-1px)' : 'translateY(0)'};
+  
+  /* 添加平滑的文字变化效果 */
+  ${props => props.$isCurrent && css`
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    
+    /* 微妙的背景高亮 */
+    &::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 120%;
+      height: 120%;
+      background: linear-gradient(135deg, 
+        ${theme.colors.primary}08, 
+        ${theme.colors.secondary}06
+      );
+      border-radius: ${theme.borderRadius.md};
+      transform: translate(-50%, -50%);
+      opacity: 0;
+      animation: fadeInBackground 0.3s ease-out forwards;
+      z-index: -1;
+    }
+    
+    @keyframes fadeInBackground {
+      from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+      to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+  `}
+  
+  /* 内容变化时的淡入效果 */
+  & > * {
+    transition: opacity 0.3s ease-in-out;
+  }
 `;
 
 const ToggleButton = styled.button<{ $viewState: LyricsViewState }>`
@@ -228,8 +281,22 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
     isDragging: false,
   });
 
+  // 添加状态来跟踪歌词行变化，实现平滑过渡
+  const [displayedLines, setDisplayedLines] = useState<{
+    first: LyricLine | null;
+    second: LyricLine | null;
+    third: LyricLine | null;
+    currentPosition: number;
+  }>({
+    first: null,
+    second: null,
+    third: null,
+    currentPosition: -1,
+  });
+
   const panelRef = useRef<HTMLDivElement>(null);
   const dragStartRef = useRef<{ y: number; startOffset: number } | null>(null);
+  const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // 计算当前歌词行索引
   const getCurrentLineIndex = useCallback((time: number): number => {
@@ -246,6 +313,83 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
   }, [lyrics]);
 
   const currentLineIndex = getCurrentLineIndex(currentTime);
+
+  // 更新显示的歌词行，实现平滑过渡
+  useEffect(() => {
+    if (!lyrics || lyrics.lines.length === 0 || panelState.viewState !== 'preview') {
+      return;
+    }
+
+    const lines = lyrics.lines;
+    const currentIndex = currentLineIndex;
+    
+    // 计算新的三行歌词
+    let newFirst: LyricLine | null = null;
+    let newSecond: LyricLine | null = null;
+    let newThird: LyricLine | null = null;
+    let newCurrentPosition = -1;
+
+    if (currentIndex < 0) {
+      // 歌曲开始前，显示前三行
+      newFirst = lines[0] || null;
+      newSecond = lines[1] || null;
+      newThird = lines[2] || null;
+      newCurrentPosition = -1;
+    } else if (currentIndex === 0) {
+      // 播放第一行
+      newFirst = lines[0] || null;
+      newSecond = lines[1] || null;
+      newThird = lines[2] || null;
+      newCurrentPosition = 0;
+    } else if (currentIndex >= lines.length - 1) {
+      // 播放最后一行
+      const startIndex = Math.max(0, lines.length - 3);
+      newFirst = lines[startIndex] || null;
+      newSecond = lines[startIndex + 1] || null;
+      newThird = lines[startIndex + 2] || null;
+      newCurrentPosition = currentIndex === startIndex ? 0 : 
+                          currentIndex === startIndex + 1 ? 1 : 2;
+    } else {
+      // 播放中间行，当前行在第二个位置
+      newFirst = lines[currentIndex - 1] || null;
+      newSecond = lines[currentIndex] || null;
+      newThird = lines[currentIndex + 1] || null;
+      newCurrentPosition = 1;
+    }
+
+    // 清除之前的过渡定时器
+    if (transitionTimeoutRef.current) {
+      clearTimeout(transitionTimeoutRef.current);
+    }
+
+    // 检查是否需要更新显示内容
+    const needsUpdate = 
+      displayedLines.first !== newFirst ||
+      displayedLines.second !== newSecond ||
+      displayedLines.third !== newThird ||
+      displayedLines.currentPosition !== newCurrentPosition;
+
+    if (needsUpdate) {
+      // 使用延迟更新来实现平滑过渡
+      transitionTimeoutRef.current = setTimeout(() => {
+        setDisplayedLines({
+          first: newFirst,
+          second: newSecond,
+          third: newThird,
+          currentPosition: newCurrentPosition,
+        });
+      }, 50); // 50ms 延迟，让 CSS 过渡更自然
+    }
+  }, [lyrics, currentLineIndex, panelState.viewState, displayedLines]);
+
+  // 清理定时器
+  useEffect(() => {
+    return () => {
+      if (transitionTimeoutRef.current) {
+        clearTimeout(transitionTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // 状态切换函数
   const switchToState = useCallback((newState: LyricsViewState) => {
@@ -413,28 +557,37 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
     );
   }, []);
 
-  // 渲染预览内容
+  // 渲染预览内容 - 使用状态管理的平滑过渡
   const renderPreviewContent = () => {
     if (!lyrics || lyrics.lines.length === 0) {
       return (
         <PreviewContent>
-          <PreviewLine $isCurrent>🎵 暂无歌词</PreviewLine>
+          <LyricsContainer>
+            <PreviewLine>🎵 暂无歌词</PreviewLine>
+            <PreviewLine>&nbsp;</PreviewLine>
+            <PreviewLine>&nbsp;</PreviewLine>
+          </LyricsContainer>
           <HintText>拖拽顶部横条或点击右上角按钮切换显示模式</HintText>
         </PreviewContent>
       );
     }
 
-    const lines = lyrics.lines;
-    const currentIndex = currentLineIndex;
-    const prevLine = currentIndex > 0 ? lines[currentIndex - 1] : null;
-    const currentLine = currentIndex >= 0 ? lines[currentIndex] : null;
-    const nextLine = currentIndex < lines.length - 1 ? lines[currentIndex + 1] : null;
+    // 使用状态管理的歌词行，实现平滑过渡
+    const { first, second, third, currentPosition } = displayedLines;
 
     return (
       <PreviewContent>
-        {prevLine && <PreviewLine>{renderPreviewLyricSegments(prevLine, false)}</PreviewLine>}
-        {currentLine && <PreviewLine $isCurrent>{renderPreviewLyricSegments(currentLine, true)}</PreviewLine>}
-        {nextLine && <PreviewLine>{renderPreviewLyricSegments(nextLine, false)}</PreviewLine>}
+        <LyricsContainer>
+          <PreviewLine $isCurrent={currentPosition === 0}>
+            {first ? renderPreviewLyricSegments(first, currentPosition === 0) : <span>&nbsp;</span>}
+          </PreviewLine>
+          <PreviewLine $isCurrent={currentPosition === 1}>
+            {second ? renderPreviewLyricSegments(second, currentPosition === 1) : <span>&nbsp;</span>}
+          </PreviewLine>
+          <PreviewLine $isCurrent={currentPosition === 2}>
+            {third ? renderPreviewLyricSegments(third, currentPosition === 2) : <span>&nbsp;</span>}
+          </PreviewLine>
+        </LyricsContainer>
         <HintText>向上拖拽查看完整歌词 • 向下拖拽隐藏面板</HintText>
       </PreviewContent>
     );
