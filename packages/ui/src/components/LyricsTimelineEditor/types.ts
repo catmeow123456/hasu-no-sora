@@ -25,6 +25,19 @@ export interface ProjectMetadata {
   description?: string;
 }
 
+export interface AudioSourceInfo {
+  type: 'upload' | 'library';
+  // 当 type 为 'upload' 时
+  file?: File;
+  // 当 type 为 'library' 时
+  albumId?: string;
+  albumName?: string;
+  trackId?: string;
+  trackFilename?: string;
+  trackTitle?: string;
+  audioUrl?: string;
+}
+
 export interface TimelineProject {
   id: string;
   name: string;
@@ -32,6 +45,7 @@ export interface TimelineProject {
   lyrics: EditableLyricLine[];
   settings: ProjectSettings;
   metadata: ProjectMetadata;
+  audioSource?: AudioSourceInfo;
 }
 
 export interface ExportFormat {
@@ -89,6 +103,7 @@ export interface AudioPlayerHook {
   seekTo: (time: number) => void;
   setVolume: (volume: number) => void;
   setAudioFile: (file: File | null) => void;
+  setAudioSource: (source: AudioSourceInfo | null) => void;
 }
 
 export interface SaveResult {

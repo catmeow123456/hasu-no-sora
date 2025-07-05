@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import styled from 'styled-components';
-import { theme, getSingerColor, getSingerName } from '../../styles/theme';
+import { theme } from '../../styles/theme';
 import { SingerTagEditor } from './SingerTagEditor';
 import { useLyricSegmentRenderer } from '../shared/LyricsSegments';
 import type { EditableLyricLine, SingerType } from './types';
@@ -149,7 +149,6 @@ const ConfidenceIndicator = styled.div<{ $confidence: number }>`
 
 interface LyricLineEditorProps {
   line: EditableLyricLine;
-  index: number;
   isSelected: boolean;
   onUpdate: (line: EditableLyricLine) => void;
   onDelete: () => void;
@@ -160,7 +159,6 @@ interface LyricLineEditorProps {
 
 export const LyricLineEditor: React.FC<LyricLineEditorProps> = ({
   line,
-  index,
   isSelected,
   onUpdate,
   onDelete,

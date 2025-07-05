@@ -194,6 +194,91 @@ packages/ui/src/components/shared/
 └── LyricsSegments.tsx  # 共享的歌词分段组件和逻辑
 ```
 
+### 音频源选择系统架构
+
+#### 核心类型定义
+```typescript
+// ✅ 推荐 - 音频源信息类型
+interface AudioSourceInfo {
+  type: 'upload' | 'library';
+  // 当 type 为 'upload' 时
+  file?: File;
+  // 当 type 为 'library' 时
+  albumId?: string;
+  albumName?: string;
+  trackId?: string;
+  trackFilename?: string;
+  trackTitle?: string;
+  audioUrl?: string;
+}
+
+// ✅ 推荐 - 扩展项目类型
+interface TimelineProject {
+  // 现有字段...
+  audioFile: File | string | null;
+  audioSource?: AudioSourceInfo; // 新增音频源信息
+}
+```
+
+#### 音频源选择组件设计
+```typescript
+// ✅ 推荐 - 音频源选择器组件
+export const AudioSourceSelector: React.FC<AudioSourceSelectorProps> = ({
+  onAudioSelected,
+  onCancel,
+  currentSource
+}) => {
+  const [viewMode, setViewMode] = useState<'selector' | 'library' | 'tracks'>('selector');
+  const { loadAlbum, selectedAlbum } = useLibraryData();
+
+  const handleTrackSelect = useCallback((track: Track) => {
+    if (!selectedAlbum) return;
+    
+    const audioSource: AudioSourceInfo = {
+      type: 'library',
+      albumId: selectedAlbum.id,
+      albumName: selectedAlbum.name,
+      trackId: track.id,
+      trackFilename: track.filename,
+      trackTitle: track.title,
+      audioUrl: `/audio/${encodeURIComponent(selectedAlbum.name)}/${encodeURIComponent(track.filename)}`
+    };
+    
+    onAudioSelected(audioSource);
+  }, [selectedAlbum, onAudioSelected]);
+};
+```
+
+#### 自动歌词加载实现
+```typescript
+// ✅ 推荐 - 自动歌词加载逻辑
+const handleAudioSourceSelected = useCallback(async (source: AudioSourceInfo) => {
+  if (source.type === 'library' && source.albumName && source.trackFilename) {
+    try {
+      const lyricsData = await apiService.getLyrics(source.albumName, source.trackFilename);
+      if (lyricsData && lyricsData.lines && lyricsData.lines.length > 0) {
+        // 将歌词转换为可编辑的格式
+        const editableLyrics: EditableLyricLine[] = lyricsData.lines.map((line: LyricLine, index: number) => ({
+          ...line,
+          id: `line_${Date.now()}_${index}`,
+          isSelected: false,
+          isDraft: false
+        }));
+        
+        updateProject({
+          audioFile: null,
+          audioSource: source,
+          lyrics: editableLyrics
+        });
+      }
+    } catch (error) {
+      // 优雅降级：歌词加载失败不影响音频选择
+      console.log('歌词文件不存在或加载失败，继续使用空歌词');
+    }
+  }
+}, [updateProject]);
+```
+
 ### 状态恢复系统架构
 
 #### 核心组件设计

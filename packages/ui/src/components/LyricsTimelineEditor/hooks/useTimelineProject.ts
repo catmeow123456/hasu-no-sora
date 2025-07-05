@@ -248,25 +248,36 @@ export const useTimelineProject = (initialProject?: Partial<TimelineProject>): T
     return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
   }, []);
 
-  // 保存项目（增强版，支持音频缓存）
+  // 保存项目（增强版，支持音频缓存和音频源）
   const saveProject = useCallback(async () => {
     try {
-      // 如果有音频文件，先缓存到 IndexedDB
-      if (project.audioFile instanceof File) {
-        await audioCacheManager.cacheAudioFile(project.audioFile);
-      }
+      let serializableProject = { ...project };
 
-      // 创建可序列化的项目数据
-      const serializableProject = {
-        ...project,
-        audioFile: project.audioFile instanceof File ? {
+      // 处理不同类型的音频源
+      if (project.audioSource?.type === 'upload' && project.audioFile instanceof File) {
+        // 上传文件：缓存到 IndexedDB
+        await audioCacheManager.cacheAudioFile(project.audioFile);
+        serializableProject.audioFile = {
           name: project.audioFile.name,
           size: project.audioFile.size,
           type: project.audioFile.type,
           lastModified: project.audioFile.lastModified,
           isCached: true
-        } : project.audioFile
-      };
+        } as any;
+      } else if (project.audioSource?.type === 'library') {
+        // 曲库文件：只保存音频源信息，不需要缓存文件
+        serializableProject.audioFile = null;
+      } else if (project.audioFile instanceof File) {
+        // 兼容旧版本：没有音频源信息但有文件
+        await audioCacheManager.cacheAudioFile(project.audioFile);
+        serializableProject.audioFile = {
+          name: project.audioFile.name,
+          size: project.audioFile.size,
+          type: project.audioFile.type,
+          lastModified: project.audioFile.lastModified,
+          isCached: true
+        } as any;
+      }
       
       // 使用固定键名保存最后一次的工作状态
       const projectData = JSON.stringify(serializableProject);

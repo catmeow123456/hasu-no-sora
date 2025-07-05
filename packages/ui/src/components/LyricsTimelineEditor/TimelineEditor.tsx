@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import styled from 'styled-components';
 import { theme } from '../../styles/theme';
+import { apiService } from '../../services/api';
 import { AudioWaveform } from './AudioWaveform';
 import { LyricLineEditor } from './LyricLineEditor';
 import { TimelineControls } from './TimelineControls';
@@ -8,10 +9,12 @@ import { PreviewPanel } from './PreviewPanel';
 import { ExportDialog } from './ExportDialog';
 import { SingerTagEditor } from './SingerTagEditor';
 import { RestoreDialog } from './RestoreDialog';
+import { AudioSourceSelector } from './AudioSourceSelector';
 import { useTimelineProject } from './hooks/useTimelineProject';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
-import type { TimelineProject, EditableLyricLine, SingerType, SavedProjectInfo } from './types';
+import type { TimelineProject, EditableLyricLine, SingerType, SavedProjectInfo, AudioSourceInfo } from './types';
+import type { LyricLine } from '../../types';
 
 const EditorContainer = styled.div`
   position: fixed;
@@ -113,23 +116,6 @@ const AudioFileSelector = styled.div`
   margin-bottom: ${theme.spacing.md};
 `;
 
-const FileInput = styled.input`
-  display: none;
-`;
-
-const FileButton = styled.label`
-  padding: ${theme.spacing.sm} ${theme.spacing.md};
-  background: ${theme.colors.surfaceHover};
-  border: 2px dashed ${theme.colors.border};
-  border-radius: ${theme.borderRadius.md};
-  cursor: pointer;
-  transition: all ${theme.transitions.fast};
-  
-  &:hover {
-    border-color: ${theme.colors.primary};
-    background: ${theme.colors.primary}10;
-  }
-`;
 
 const FileName = styled.span`
   font-size: ${theme.fontSizes.sm};
@@ -310,6 +296,7 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
   const [savedProjectInfo, setSavedProjectInfo] = useState<SavedProjectInfo | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [showAudioSourceSelector, setShowAudioSourceSelector] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   
   const {
@@ -337,7 +324,8 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
     play,
     pause,
     seekTo,
-    setAudioFile: setPlayerAudioFile
+    setAudioFile: setPlayerAudioFile,
+    setAudioSource: setPlayerAudioSource
   } = useAudioPlayer(audioRef);
   
   // 时间格式化函数
@@ -348,15 +336,75 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
     return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
   }, []);
 
-  // 处理音频文件选择
-  const handleAudioFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setAudioFile(file);
-      setPlayerAudioFile(file);
-      updateProject({ audioFile: file });
+
+  // 处理音频源选择
+  const handleAudioSourceSelected = useCallback(async (source: AudioSourceInfo, shouldPlay?: boolean) => {
+    if (source.type === 'upload' && source.file) {
+      // 上传文件
+      setAudioFile(source.file);
+      setPlayerAudioSource(source);
+      updateProject({
+        audioFile: source.file,
+        audioSource: source
+      });
+    } else if (source.type === 'library') {
+      // 曲库文件
+      setAudioFile(null); // 曲库文件不需要 File 对象
+      setPlayerAudioSource(source);
+      updateProject({
+        audioFile: null,
+        audioSource: source
+      });
+
+      // 自动加载对应的歌词文件
+      if (source.albumName && source.trackFilename) {
+        try {
+          const lyricsData = await apiService.getLyrics(source.albumName, source.trackFilename);
+          if (lyricsData && lyricsData.lines && lyricsData.lines.length > 0) {
+            // 将歌词转换为可编辑的格式
+            const editableLyrics: EditableLyricLine[] = lyricsData.lines.map((line: LyricLine, index: number) => ({
+              ...line,
+              id: `line_${Date.now()}_${index}`,
+              isSelected: false,
+              isDraft: false
+            }));
+            
+            // 更新项目歌词
+            updateProject({
+              audioFile: null,
+              audioSource: source,
+              lyrics: editableLyrics
+            });
+            
+            console.log(`自动加载歌词成功: ${editableLyrics.length} 行`);
+          }
+        } catch (error) {
+          // 如果歌词加载失败，不影响音频选择
+          console.log('歌词文件不存在或加载失败，继续使用空歌词');
+        }
+      }
     }
-  }, [setPlayerAudioFile, updateProject]);
+    
+    setShowAudioSourceSelector(false);
+    
+    // 如果需要自动播放，等待音频加载后播放
+    if (shouldPlay) {
+      // 使用 setTimeout 确保音频源已经设置完成
+      setTimeout(() => {
+        play();
+      }, 100);
+    }
+  }, [setPlayerAudioSource, updateProject, play]);
+
+  // 获取当前音频显示名称
+  const getCurrentAudioName = useCallback(() => {
+    if (project.audioSource?.type === 'library') {
+      return `${project.audioSource.albumName} - ${project.audioSource.trackTitle}`;
+    } else if (audioFile) {
+      return audioFile.name;
+    }
+    return '未选择文件';
+  }, [project.audioSource, audioFile]);
   
   // 在当前播放位置插入歌词
   const insertLyricAtCurrentTime = useCallback((text: string = '') => {
@@ -528,8 +576,19 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
     try {
       const result = await loadProject();
       if (result.success && result.project) {
-        // 恢复音频文件到播放器
-        if (result.project.audioFile instanceof File) {
+        // 恢复音频源到播放器
+        if (result.project.audioSource) {
+          if (result.project.audioSource.type === 'upload' && result.project.audioFile instanceof File) {
+            // 上传文件恢复
+            setAudioFile(result.project.audioFile);
+            setPlayerAudioSource(result.project.audioSource);
+          } else if (result.project.audioSource.type === 'library') {
+            // 曲库文件恢复
+            setAudioFile(null);
+            setPlayerAudioSource(result.project.audioSource);
+          }
+        } else if (result.project.audioFile instanceof File) {
+          // 兼容旧版本：没有音频源信息但有文件
           setAudioFile(result.project.audioFile);
           setPlayerAudioFile(result.project.audioFile);
         }
@@ -545,7 +604,7 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
       setIsRestoring(false);
       setShowRestoreDialog(false);
     }
-  }, [loadProject, setPlayerAudioFile]);
+  }, [loadProject, setPlayerAudioFile, setPlayerAudioSource]);
 
   // 处理开始新项目
   const handleStartNewProject = useCallback(async () => {
@@ -724,17 +783,11 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
       <MainContent>
         <AudioSection>
           <AudioFileSelector>
-            <FileButton htmlFor="audio-file-input">
-              选择音频文件
-            </FileButton>
-            <FileInput
-              id="audio-file-input"
-              type="file"
-              accept="audio/*"
-              onChange={handleAudioFileChange}
-            />
+            <ActionButton onClick={() => setShowAudioSourceSelector(true)}>
+              选择音频
+            </ActionButton>
             <FileName>
-              {audioFile ? audioFile.name : '未选择文件'}
+              {getCurrentAudioName()}
             </FileName>
           </AudioFileSelector>
           
@@ -762,11 +815,10 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
             </WaveformContainer>
             
             <LyricsEditorContainer>
-              {project.lyrics.map((line, index) => (
+              {project.lyrics.map((line) => (
                 <LyricLineEditor
                   key={line.id}
                   line={line}
-                  index={index}
                   isSelected={line.isSelected}
                   shouldStartEditing={triggerEditLineId === line.id}
                   onUpdate={(updatedLine) => updateLyricLine(line.id, updatedLine)}
@@ -840,6 +892,15 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
           onRestore={handleRestoreProject}
           onStartNew={handleStartNewProject}
           onCancel={() => setShowRestoreDialog(false)}
+        />
+      )}
+      
+      {/* 音频源选择器 */}
+      {showAudioSourceSelector && (
+        <AudioSourceSelector
+          onAudioSelected={handleAudioSourceSelected}
+          onCancel={() => setShowAudioSourceSelector(false)}
+          currentSource={project.audioSource}
         />
       )}
       

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, RefObject } from 'react';
-import type { AudioPlayerHook } from '../types';
+import type { AudioPlayerHook, AudioSourceInfo } from '../types';
 
 export const useAudioPlayer = (audioRef: RefObject<HTMLAudioElement>): AudioPlayerHook => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -57,6 +57,32 @@ export const useAudioPlayer = (audioRef: RefObject<HTMLAudioElement>): AudioPlay
       } else {
         audioRef.current.src = '';
       }
+    }
+  }, [audioRef]);
+
+  // 设置音频源（支持上传文件和曲库文件）
+  const setAudioSource = useCallback((source: AudioSourceInfo | null) => {
+    if (!audioRef.current) return;
+
+    if (!source) {
+      audioRef.current.src = '';
+      return;
+    }
+
+    if (source.type === 'upload' && source.file) {
+      // 上传文件：使用 File 对象
+      const url = URL.createObjectURL(source.file);
+      audioRef.current.src = url;
+      audioRef.current.load();
+      
+      // 返回清理函数
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    } else if (source.type === 'library' && source.audioUrl) {
+      // 曲库文件：使用 API URL
+      audioRef.current.src = source.audioUrl;
+      audioRef.current.load();
     }
   }, [audioRef]);
 
@@ -136,6 +162,7 @@ export const useAudioPlayer = (audioRef: RefObject<HTMLAudioElement>): AudioPlay
     pause,
     seekTo,
     setVolume,
-    setAudioFile
+    setAudioFile,
+    setAudioSource
   };
 };

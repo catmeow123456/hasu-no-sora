@@ -6,6 +6,9 @@ export { PreviewPanel } from './PreviewPanel';
 export { ExportDialog } from './ExportDialog';
 export { SingerTagEditor } from './SingerTagEditor';
 export { RestoreDialog } from './RestoreDialog';
+export { AudioSourceSelector } from './AudioSourceSelector';
+export { LibraryBrowser } from './LibraryBrowser';
+export { TrackSelector } from './TrackSelector';
 
 export type {
   TimelineProject,
@@ -23,9 +26,11 @@ export type {
   LoadResult,
   SavedProjectInfo,
   SingerType,
-  LyricSegment
+  LyricSegment,
+  AudioSourceInfo
 } from './types';
 
 export { useTimelineProject } from './hooks/useTimelineProject';
 export { useAudioPlayer } from './hooks/useAudioPlayer';
 export { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+export { useLibraryData } from './hooks/useLibraryData';

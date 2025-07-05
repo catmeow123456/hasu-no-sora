@@ -3,13 +3,6 @@ import styled from 'styled-components';
 import { theme, getSingerColor } from '../../styles/theme';
 import type { EditableLyricLine, WaveformData } from './types';
 
-interface DragState {
-  isDragging: boolean;
-  dragLineId: string | null;
-  startX: number;
-  startTime: number;
-}
-
 const WaveformContainer = styled.div`
   position: relative;
   width: 100%;

@@ -59,6 +59,8 @@ yarn start   # 生产服务器
 ## 🛠️ 歌词时间轴生成工具
 
 ### 核心功能
+- **音频源选择**: 支持上传文件和从项目曲库选择音频
+- **自动歌词加载**: 选择曲库音频时自动加载对应歌词文件
 - **音频波形**: Canvas 绘制，支持点击跳转
 - **实时编辑**: 双击编辑歌词，拖拽调整时间
 - **多歌手支持**: 完整的歌手标记和彩虹效果
@@ -76,21 +78,54 @@ LyricsTimelineEditor/
 ├── PreviewPanel.tsx        # 实时预览
 ├── ExportDialog.tsx        # 导出功能
 ├── RestoreDialog.tsx       # 状态恢复对话框
+├── AudioSourceSelector.tsx # 音频源选择主界面
+├── LibraryBrowser.tsx      # 曲库浏览组件
+├── TrackSelector.tsx       # 曲目选择组件
 ├── utils/
 │   └── audioCache.ts       # 音频文件缓存管理
 └── hooks/                  # 自定义 Hooks
     ├── useTimelineProject.ts  # 项目状态管理（含恢复功能）
     ├── useAudioPlayer.ts      # 音频播放控制
-    └── useKeyboardShortcuts.ts # 键盘快捷键
+    ├── useKeyboardShortcuts.ts # 键盘快捷键
+    └── useLibraryData.ts      # 曲库数据管理
 ```
+
+### 🎵 音频源选择系统 (核心特性)
+
+#### 支持的音频源类型
+- **上传文件**: 支持 MP3, WAV, FLAC, M4A, OGG 格式
+- **曲库选择**: 从项目音乐库中选择已收录的音频文件
+
+#### 自动歌词加载功能
+- **智能检测**: 选择曲库音频时自动检测对应的 `.lrc` 歌词文件
+- **无缝转换**: 自动将标准歌词格式转换为可编辑的时间轴格式
+- **多歌手保留**: 完整保留歌手标记 `@歌手@文本` 和彩虹效果 `@歌手1,歌手2@文本`
+- **优雅降级**: 如果没有歌词文件，继续使用空歌词进行编辑
+
+#### 用户交互流程
+```
+点击"选择音频" → 选择音频源类型 → 浏览/选择文件 → 自动加载歌词 → 开始编辑
+```
+
+#### 技术实现要点
+- **AudioSourceInfo**: 统一的音频源信息类型，支持两种音频源
+- **双重存储策略**: 上传文件使用 IndexedDB 缓存，曲库文件直接使用 API URL
+- **状态恢复兼容**: 完整支持两种音频源的项目状态恢复
+- **API 集成**: 通过 `apiService.getLyrics()` 自动获取歌词文件
+
+#### 开发注意事项
+- 使用 `setPlayerAudioSource()` 而非 `setPlayerAudioFile()` 设置音频
+- 曲库音频不需要 File 对象，直接使用 `audioSource.audioUrl`
+- 自动歌词加载在 `handleAudioSourceSelected()` 中实现
+- 歌词转换需要生成唯一的 `id` 和设置 `isSelected`, `isDraft` 状态
 
 ### 🔄 状态恢复系统
 
 #### 存储架构
-- **localStorage**: 项目元数据、歌词数据、设置信息
+- **localStorage**: 项目元数据、歌词数据、设置信息、音频源信息
   - 键名: `timeline_last_project`
   - 内容: 序列化的项目数据（不含 File 对象）
-- **IndexedDB**: 音频文件缓存
+- **IndexedDB**: 上传音频文件缓存
   - 数据库: `TimelineEditorCache`
   - 存储: 音频文件的 ArrayBuffer 数据
 
@@ -99,18 +134,22 @@ LyricsTimelineEditor/
 2. 如果存在保存的项目，显示 `RestoreDialog`
 3. 用户选择恢复或开始新项目
 4. 恢复时从 localStorage 加载项目数据
-5. 从 IndexedDB 恢复音频文件 File 对象
+5. 根据音频源类型恢复音频：
+   - **上传文件**: 从 IndexedDB 恢复 File 对象
+   - **曲库文件**: 直接使用 API URL，无需缓存
 
 #### 关键实现
 - **音频缓存**: `audioCacheManager` 单例管理 IndexedDB 操作
 - **序列化处理**: File 对象转换为可序列化的元数据
+- **音频源处理**: 区分上传文件和曲库文件的不同恢复策略
 - **错误处理**: 音频文件丢失时优雅降级
 - **用户反馈**: 保存成功/失败的实时提示
 
 #### 开发注意事项
 - 不要在 `App.tsx` 中传入 `initialProject` 参数，会跳过恢复检查
-- 音频文件通过 `audioCacheManager.cacheAudioFile()` 缓存
-- 恢复时需要重建 File 对象并设置到音频播放器
+- 上传文件通过 `audioCacheManager.cacheAudioFile()` 缓存
+- 曲库文件不需要缓存，直接使用 `audioSource.audioUrl`
+- 恢复时需要调用 `setPlayerAudioSource()` 而非 `setPlayerAudioFile()`
 - 使用 `checkForSavedProject()` 检查是否有保存的项目
 
 ## 📡 API 接口

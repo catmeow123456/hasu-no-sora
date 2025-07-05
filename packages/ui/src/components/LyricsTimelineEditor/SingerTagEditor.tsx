@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import styled from 'styled-components';
-import { theme, getSingerColor, getSingerName, createRainbowGradient } from '../../styles/theme';
+import { theme, getSingerColor, createRainbowGradient } from '../../styles/theme';
 import type { LyricSegment, SingerType } from './types';
 
 const Overlay = styled.div`
@@ -318,16 +318,6 @@ export const SingerTagEditor: React.FC<SingerTagEditorProps> = ({
   const handleSave = useCallback(() => {
     onSave(generatePreviewText());
   }, [onSave, generatePreviewText]);
-
-  // 处理键盘事件
-  const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
-    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
-      event.preventDefault();
-      handleSave();
-    } else if (event.key === 'Escape') {
-      onCancel();
-    }
-  }, [handleSave, onCancel]);
 
   // 全局键盘事件监听
   useEffect(() => {
