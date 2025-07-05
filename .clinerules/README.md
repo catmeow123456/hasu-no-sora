@@ -52,7 +52,7 @@ yarn start   # 生产服务器
 | `kaho` | 日野下花帆 | #f8b500 | `megumi` | 藤岛慈 | #c8c2c6 |
 | `sayaka` | 村野沙耶香 | #5383c3 | `ginko` | 百生吟子 | #a2d7dd |
 | `tsuzuri` | 夕雾缀理 | #ba2636 | `kosuzu` | 徒町小铃 | #fad764 |
-| `himena` | 安养寺姬芽 | #9d8de2 | `hasunosora` | 主题色 | #FB8A9B |
+| `hime` | 安养寺姬芽 | #9d8de2 | `hasunosora` | 主题色 | #FB8A9B |
 
 **小组**: `cerise` (#da645f), `dollche` (#163bca), `miracra` (#F3B171)
 

@@ -200,7 +200,7 @@ const SINGERS = {
     { id: 'megumi', name: '藤岛慈', subtitle: '天使白色' },
     { id: 'ginko', name: '百生吟子', subtitle: '天之原色' },
     { id: 'kosuzu', name: '徒町小铃', subtitle: '长庚星色' },
-    { id: 'himena', name: '安养寺姬芽', subtitle: '糖果紫色' },
+    { id: 'hime', name: '安养寺姬芽', subtitle: '糖果紫色' },
   ],
   groups: [
     { id: 'cerise', name: 'Cerise Bouquet', subtitle: '玫瑰色小组' },

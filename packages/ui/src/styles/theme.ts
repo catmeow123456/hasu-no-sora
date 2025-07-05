@@ -120,7 +120,7 @@ export const theme = {
       secondary: '#fce085',  // 稍浅的星色
       background: '#fffcf0'  // 星色背景
     },
-    himena: {
+    hime: {
       name: '安养寺姬芽',
       primary: '#9d8de2',    // 糖果紫色
       secondary: '#b5a8e8',  // 稍浅的紫色

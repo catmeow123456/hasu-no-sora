@@ -1,6 +1,6 @@
 export type SingerType = 
   | 'kozue' | 'kaho' | 'sayaka' | 'tsuzuri' | 'rurino' 
-  | 'megumi' | 'ginko' | 'kosuzu' | 'himena'
+  | 'megumi' | 'ginko' | 'kosuzu' | 'hime'
   | 'cerise' | 'dollche' | 'miracra' // 新增小组
   | 'hasunosora'; // 新增 hasu-no-sora 主题色
 

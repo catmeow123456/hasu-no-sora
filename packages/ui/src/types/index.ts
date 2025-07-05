@@ -1,6 +1,6 @@
 export type SingerType = 
   | 'kozue' | 'kaho' | 'sayaka' | 'tsuzuri' | 'rurino' 
-  | 'megumi' | 'ginko' | 'kosuzu' | 'himena'
+  | 'megumi' | 'ginko' | 'kosuzu' | 'hime'
   | 'cerise' | 'dollche' | 'miracra'; // 新增小组
 
 export interface Track {
