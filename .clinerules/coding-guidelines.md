@@ -479,22 +479,25 @@ yarn workspace @hasu/ui build
 - **视觉效果**: 当前行高亮，已播放/未播放行不同透明度
 - **自动滚动**: 当前歌词行自动滚动到屏幕中央
 - **多歌手支持**: 支持 `@歌手@文本` 格式，不同歌手显示不同颜色
+- **彩虹效果**: 支持 `@歌手1,歌手2,歌手3@文本` 格式，多歌手组合显示渐变色彩虹效果
 
 ### 多歌手歌词系统架构
 
 #### 类型定义
 ```typescript
-// ✅ 推荐 - 歌词分段类型定义
+// ✅ 推荐 - 歌词分段类型定义（支持彩虹效果）
 interface LyricSegment {
-  text: string;        // 文本片段
-  singer?: string;     // 歌手简称 (kozue, kaho, sayaka 等)
+  text: string;           // 文本片段
+  singer?: SingerType;    // 单歌手简称 (kozue, kaho, sayaka 等)
+  singers?: SingerType[]; // 多歌手数组，用于彩虹效果
+  isRainbow?: boolean;    // 标记是否为彩虹效果
 }
 
 interface LyricLine {
   time: number;        // 时间戳（秒）
   text: string;        // 完整歌词文本
   originalTime: string; // 原始时间格式 [mm:ss.xx]
-  segments: LyricSegment[]; // 歌词分段，支持多歌手
+  segments: LyricSegment[]; // 歌词分段，支持多歌手和彩虹效果
 }
 ```
 
@@ -526,20 +529,20 @@ export const getSingerColor = (singer?: string, fallbackColor: string = theme.co
 };
 ```
 
-#### 歌词解析增强
+#### 歌词解析增强（支持彩虹效果）
 ```typescript
-// ✅ 推荐 - 多歌手歌词解析
+// ✅ 推荐 - 多歌手歌词解析（支持彩虹效果）
 private parseSegments(text: string): LyricSegment[] {
   const segments: LyricSegment[] = [];
   
-  // 歌手标记正则: @歌手名@文本内容
+  // 歌手标记正则: @歌手名@文本内容（支持逗号分隔的多歌手）
   const singerRegex = /@([^@]+)@([^@]*?)(?=@|$)/g;
   
   let lastIndex = 0;
   let match;
   
   while ((match = singerRegex.exec(text)) !== null) {
-    const [fullMatch, singer, segmentText] = match;
+    const [fullMatch, singerPart, segmentText] = match;
     const matchStart = match.index;
     
     // 如果匹配前有未标记的文本，添加为无歌手片段
@@ -552,10 +555,36 @@ private parseSegments(text: string): LyricSegment[] {
     
     // 添加带歌手标记的片段
     if (segmentText.trim()) {
-      segments.push({
-        text: segmentText.trim(),
-        singer: singer.trim()
-      });
+      const trimmedSingerPart = singerPart.trim();
+      
+      // 检查是否为多歌手组合（包含逗号）
+      if (trimmedSingerPart.includes(',')) {
+        const singers = trimmedSingerPart
+          .split(',')
+          .map(s => s.trim())
+          .filter(s => s.length > 0) as SingerType[];
+        
+        if (singers.length > 1) {
+          // 多歌手组合，创建彩虹效果片段
+          segments.push({
+            text: segmentText.trim(),
+            singers: singers,
+            isRainbow: true
+          });
+        } else {
+          // 只有一个歌手，按单歌手处理
+          segments.push({
+            text: segmentText.trim(),
+            singer: singers[0]
+          });
+        }
+      } else {
+        // 单歌手标记
+        segments.push({
+          text: segmentText.trim(),
+          singer: trimmedSingerPart as SingerType
+        });
+      }
     }
     
     lastIndex = matchStart + fullMatch.length;
@@ -633,9 +662,19 @@ const renderLyricSegments = useCallback((line: LyricLine) => {
 [01:21.60]@miracra@活泼的黄色旋律
 [01:24.90]@cerise@一起唱 @dollche@一起跳 @miracra@一起闪耀
 
+# 支持的格式示例 - 多歌手彩虹效果
+[00:35.10]@kaho,tsuzuri,megumi@On your mark, ready set go!
+[01:27.00]@sayaka,kozue,rurino@浮世を駆け抜けて
+[02:05.00]@kaho,tsuzuri,megumi@咲き誇れ
+
 # 支持的格式示例 - 混合演出
 [01:30.00]@kaho@个人歌手 @cerise@小组合唱 @kozue@混合演出
 [01:35.00]普通的歌词（无歌手标记，正常显示）
+
+# 支持的格式示例 - 项目主题色
+[01:40.00]@hasunosora@Hasu no Sora 的温暖歌声
+[01:43.30]@hasunosora@粉色的梦想与希望
+[01:46.60]@kaho@个人色彩 @hasunosora@与主题色彩 @kozue@的完美融合
 ```
 
 #### 调试和测试
@@ -735,7 +774,9 @@ export const useLyrics = (currentTrack: Track | null, currentAlbum: Album | null
 - [ ] 歌词功能与音频播放同步准确
 - [ ] LRC 文件解析正确处理多语言字符
 - [ ] 多歌手标记 `@歌手@文本` 格式解析正确
+- [ ] 多歌手彩虹效果 `@歌手1,歌手2,歌手3@文本` 格式解析正确
 - [ ] 歌手配色系统工作正常，颜色显示准确
+- [ ] 彩虹渐变效果显示正确，颜色过渡自然
 - [ ] 全屏和折叠模式都支持多歌手颜色显示
 - [ ] 混合行（一行内多个歌手）渲染正确
 - [ ] 向后兼容标准 LRC 格式
@@ -743,6 +784,7 @@ export const useLyrics = (currentTrack: Track | null, currentAlbum: Album | null
 - [ ] 歌词分段组件性能优化到位（memo、useCallback）
 - [ ] 歌词解析错误处理完善
 - [ ] 前后端歌词类型定义同步（LyricSegment、LyricLine）
+- [ ] 彩虹效果在不支持 background-clip 的浏览器中有备用方案
 
 ### 性能和用户体验
 - [ ] 歌词滚动动画流畅，无卡顿

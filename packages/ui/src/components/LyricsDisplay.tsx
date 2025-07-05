@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import type { Lyrics, LyricLine } from '../types';
-import { theme, getSingerColorForState } from '../styles/theme';
+import { theme, getSingerColorForState, createRainbowGradient, getRainbowSingerNames } from '../styles/theme';
 import { CuteLoadingSpinner } from './CuteLoadingSpinner';
 
 // 歌词行淡入动画
@@ -162,6 +162,28 @@ const SingerSegment = styled.span<{ $singer?: string; $isCurrent?: boolean }>`
   transition: color 0.3s ease;
 `;
 
+// 彩虹效果分段组件 - 用于多歌手组合
+const RainbowSegment = styled.span<{ $gradient: string; $isCurrent?: boolean }>`
+  background: ${props => props.$gradient};
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: ${props => props.$isCurrent ? '700' : '600'}; /* 彩虹文字使用更粗的字体 */
+  transition: all 0.3s ease;
+  
+  /* 为彩虹文字添加轻微的文字阴影增强可读性 */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  
+  /* 非当前行时降低透明度 */
+  opacity: ${props => props.$isCurrent ? 1 : 0.85};
+  
+  /* 确保在不支持 background-clip 的浏览器中有备用方案 */
+  @supports not (-webkit-background-clip: text) {
+    background: none;
+    color: ${theme.colors.primary};
+  }
+`;
+
 interface LyricsDisplayProps {
   lyrics: Lyrics | null;
   currentTime: number;
@@ -211,12 +233,36 @@ export const LyricsDisplay: React.FC<LyricsDisplayProps> = React.memo(({
     // 渲染多个分段
     return (
       <>
-        {line.segments.map((segment, segmentIndex) => (
-          <SingerSegment key={segmentIndex} $singer={segment.singer} $isCurrent={isCurrent}>
-            {segment.text}
-            {segmentIndex < line.segments.length - 1 ? ' ' : ''}
-          </SingerSegment>
-        ))}
+        {line.segments.map((segment, segmentIndex) => {
+          // 检查是否为彩虹效果片段（多歌手组合）
+          if (segment.isRainbow && segment.singers && segment.singers.length > 1) {
+            const gradient = createRainbowGradient(segment.singers);
+            return (
+              <RainbowSegment 
+                key={segmentIndex} 
+                $gradient={gradient} 
+                $isCurrent={isCurrent}
+                title={`${getRainbowSingerNames(segment.singers)}: ${segment.text}`}
+              >
+                {segment.text}
+                {segmentIndex < line.segments.length - 1 ? ' ' : ''}
+              </RainbowSegment>
+            );
+          }
+          
+          // 普通单歌手片段
+          return (
+            <SingerSegment 
+              key={segmentIndex} 
+              $singer={segment.singer} 
+              $isCurrent={isCurrent}
+              title={segment.singer ? `${getSingerColorForState(segment.singer)}: ${segment.text}` : undefined}
+            >
+              {segment.text}
+              {segmentIndex < line.segments.length - 1 ? ' ' : ''}
+            </SingerSegment>
+          );
+        })}
       </>
     );
   }, []);

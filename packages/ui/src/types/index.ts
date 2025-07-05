@@ -15,6 +15,8 @@ export interface Track {
 export interface LyricSegment {
   text: string;        // 文本片段
   singer?: SingerType; // 歌手简称，支持个人歌手和小组
+  singers?: SingerType[]; // 新增：多歌手数组，用于彩虹效果
+  isRainbow?: boolean;    // 新增：标记是否为彩虹效果
 }
 
 export interface LyricLine {

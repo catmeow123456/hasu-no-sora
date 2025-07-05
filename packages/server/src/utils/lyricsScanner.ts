@@ -11,19 +11,22 @@ export class LyricsScanner {
 
   /**
    * 解析歌词文本中的歌手标记
-   * 支持格式：@kozue@歌词文本 或 @kozue@部分1 @kaho@部分2
+   * 支持格式：
+   * - 单歌手：@kozue@歌词文本
+   * - 混合：@kozue@部分1 @kaho@部分2
+   * - 多歌手组合（彩虹效果）：@kaho,tsuzuri,megumi@歌词文本
    */
   private parseSegments(text: string): LyricSegment[] {
     const segments: LyricSegment[] = [];
     
-    // 歌手标记正则: @歌手名@文本内容
+    // 歌手标记正则: @歌手名@文本内容（支持逗号分隔的多歌手）
     const singerRegex = /@([^@]+)@([^@]*?)(?=@|$)/g;
     
     let lastIndex = 0;
     let match;
     
     while ((match = singerRegex.exec(text)) !== null) {
-      const [fullMatch, singer, segmentText] = match;
+      const [fullMatch, singerPart, segmentText] = match;
       const matchStart = match.index;
       
       // 如果匹配前有未标记的文本，添加为无歌手片段
@@ -36,11 +39,36 @@ export class LyricsScanner {
       
       // 添加带歌手标记的片段
       if (segmentText.trim()) {
-        const trimmedSinger = singer.trim();
-        segments.push({
-          text: segmentText.trim(),
-          singer: trimmedSinger as SingerType
-        });
+        const trimmedSingerPart = singerPart.trim();
+        
+        // 检查是否为多歌手组合（包含逗号）
+        if (trimmedSingerPart.includes(',')) {
+          const singers = trimmedSingerPart
+            .split(',')
+            .map(s => s.trim())
+            .filter(s => s.length > 0) as SingerType[];
+          
+          if (singers.length > 1) {
+            // 多歌手组合，创建彩虹效果片段
+            segments.push({
+              text: segmentText.trim(),
+              singers: singers,
+              isRainbow: true
+            });
+          } else {
+            // 只有一个歌手，按单歌手处理
+            segments.push({
+              text: segmentText.trim(),
+              singer: singers[0]
+            });
+          }
+        } else {
+          // 单歌手标记
+          segments.push({
+            text: segmentText.trim(),
+            singer: trimmedSingerPart as SingerType
+          });
+        }
       }
       
       lastIndex = matchStart + fullMatch.length;

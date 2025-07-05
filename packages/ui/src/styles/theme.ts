@@ -144,6 +144,13 @@ export const theme = {
       primary: '#F3B171',     // 黄色
       secondary: '#f6c48a',   // 稍浅的黄色
       background: '#fffbf0'   // 温暖的黄色背景
+    },
+    // 整体项目主题色
+    hasunosora: {
+      name: 'Hasu no Sora',
+      primary: '#FB8A9B',     // Hasu no Sora 主题粉色
+      secondary: '#fca5b3',   // 稍浅的主题粉色
+      background: '#fff8f9'   // 温暖的粉色背景
     }
   },
 };
@@ -195,6 +202,41 @@ export const getSingerName = (singer?: string): string => {
   
   const singerConfig = theme.singers[singer as keyof typeof theme.singers];
   return singerConfig ? singerConfig.name : singer;
+};
+
+// 创建多歌手彩虹渐变
+export const createRainbowGradient = (singers: string[]): string => {
+  if (!singers || singers.length === 0) {
+    return theme.colors.text.primary;
+  }
+  
+  if (singers.length === 1) {
+    return getSingerColor(singers[0]);
+  }
+  
+  const colors = singers.map(singer => getSingerColor(singer, theme.colors.text.primary));
+  
+  // 确保至少有两种颜色用于渐变
+  if (colors.length < 2) {
+    return colors[0] || theme.colors.text.primary;
+  }
+  
+  // 创建线性渐变，从左到右平滑过渡
+  return `linear-gradient(90deg, ${colors.join(', ')})`;
+};
+
+// 获取多歌手组合的显示名称
+export const getRainbowSingerNames = (singers: string[]): string => {
+  if (!singers || singers.length === 0) return '';
+  
+  const names = singers.map(singer => getSingerName(singer) || singer);
+  
+  if (names.length === 1) return names[0];
+  if (names.length === 2) return names.join(' & ');
+  
+  // 多于两个歌手时，用逗号分隔，最后一个用 & 连接
+  const lastSinger = names.pop();
+  return `${names.join(', ')} & ${lastSinger}`;
 };
 
 // Styled-components v6 theme declaration
