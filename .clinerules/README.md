@@ -64,6 +64,7 @@ yarn start   # 生产服务器
 - **多歌手支持**: 完整的歌手标记和彩虹效果
 - **导出格式**: LRC, Enhanced LRC, JSON, SRT, TXT
 - **键盘快捷键**: Space(播放), Ctrl+T(插入), Ctrl+S(保存)
+- **状态恢复**: 自动保存工作进度，支持跨会话恢复
 
 ### 组件架构
 ```
@@ -74,8 +75,43 @@ LyricsTimelineEditor/
 ├── SingerTagEditor.tsx     # 歌手标记编辑
 ├── PreviewPanel.tsx        # 实时预览
 ├── ExportDialog.tsx        # 导出功能
+├── RestoreDialog.tsx       # 状态恢复对话框
+├── utils/
+│   └── audioCache.ts       # 音频文件缓存管理
 └── hooks/                  # 自定义 Hooks
+    ├── useTimelineProject.ts  # 项目状态管理（含恢复功能）
+    ├── useAudioPlayer.ts      # 音频播放控制
+    └── useKeyboardShortcuts.ts # 键盘快捷键
 ```
+
+### 🔄 状态恢复系统
+
+#### 存储架构
+- **localStorage**: 项目元数据、歌词数据、设置信息
+  - 键名: `timeline_last_project`
+  - 内容: 序列化的项目数据（不含 File 对象）
+- **IndexedDB**: 音频文件缓存
+  - 数据库: `TimelineEditorCache`
+  - 存储: 音频文件的 ArrayBuffer 数据
+
+#### 恢复流程
+1. 编辑器启动时检查 `timeline_last_project`
+2. 如果存在保存的项目，显示 `RestoreDialog`
+3. 用户选择恢复或开始新项目
+4. 恢复时从 localStorage 加载项目数据
+5. 从 IndexedDB 恢复音频文件 File 对象
+
+#### 关键实现
+- **音频缓存**: `audioCacheManager` 单例管理 IndexedDB 操作
+- **序列化处理**: File 对象转换为可序列化的元数据
+- **错误处理**: 音频文件丢失时优雅降级
+- **用户反馈**: 保存成功/失败的实时提示
+
+#### 开发注意事项
+- 不要在 `App.tsx` 中传入 `initialProject` 参数，会跳过恢复检查
+- 音频文件通过 `audioCacheManager.cacheAudioFile()` 缓存
+- 恢复时需要重建 File 对象并设置到音频播放器
+- 使用 `checkForSavedProject()` 检查是否有保存的项目
 
 ## 📡 API 接口
 - **认证**: 密码 `hasu-no-sora`

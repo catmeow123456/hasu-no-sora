@@ -247,11 +247,6 @@ function App() {
           {showTimelineEditor && (
             <TimelineEditor
               onClose={() => setShowTimelineEditor(false)}
-              initialProject={{
-                name: playerState.currentTrack ? 
-                  `${playerState.currentTrack.title} - 歌词项目` : 
-                  '新建歌词项目'
-              }}
             />
           )}
         </AppContainer>

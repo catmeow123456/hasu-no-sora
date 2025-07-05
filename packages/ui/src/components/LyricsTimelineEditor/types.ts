@@ -91,6 +91,25 @@ export interface AudioPlayerHook {
   setAudioFile: (file: File | null) => void;
 }
 
+export interface SaveResult {
+  success: boolean;
+  message: string;
+}
+
+export interface LoadResult {
+  success: boolean;
+  project?: TimelineProject;
+  message?: string;
+}
+
+export interface SavedProjectInfo {
+  exists: boolean;
+  name?: string;
+  updatedAt?: Date;
+  hasAudio?: boolean;
+  lyricsCount?: number;
+}
+
 export interface TimelineProjectHook {
   project: TimelineProject;
   updateProject: (updates: Partial<TimelineProject>) => void;
@@ -102,7 +121,9 @@ export interface TimelineProjectHook {
   selectPreviousLine: () => void;
   adjustSelectedLineTime: (direction: 'left' | 'right', precision: 'fine' | 'normal' | 'coarse') => void;
   batchAdjustTime: (offset: number) => void;
-  saveProject: () => Promise<void>;
-  loadProject: (projectId: string) => Promise<void>;
+  saveProject: () => Promise<SaveResult>;
+  loadProject: (projectId?: string) => Promise<LoadResult>;
+  checkForSavedProject: () => SavedProjectInfo;
+  clearSavedProject: () => Promise<void>;
   isDirty: boolean;
 }

@@ -194,6 +194,186 @@ packages/ui/src/components/shared/
 └── LyricsSegments.tsx  # 共享的歌词分段组件和逻辑
 ```
 
+### 状态恢复系统架构
+
+#### 核心组件设计
+```typescript
+// ✅ 推荐 - 音频缓存管理器单例模式
+class AudioCacheManager {
+  private static instance: AudioCacheManager;
+  private db: IDBDatabase | null = null;
+  
+  static getInstance(): AudioCacheManager {
+    if (!AudioCacheManager.instance) {
+      AudioCacheManager.instance = new AudioCacheManager();
+    }
+    return AudioCacheManager.instance;
+  }
+  
+  async cacheAudioFile(file: File): Promise<void> {
+    // IndexedDB 存储实现
+  }
+}
+
+export const audioCacheManager = new AudioCacheManager();
+```
+
+#### 状态管理最佳实践
+```typescript
+// ✅ 推荐 - 项目状态 Hook 设计
+export const useTimelineProject = (initialProject?: Partial<TimelineProject>) => {
+  // 关键：不要传入 initialProject 参数到 TimelineEditor
+  // 这会跳过状态恢复检查
+  
+  const saveProject = useCallback(async () => {
+    // 1. 缓存音频文件到 IndexedDB
+    if (project.audioFile instanceof File) {
+      await audioCacheManager.cacheAudioFile(project.audioFile);
+    }
+    
+    // 2. 序列化项目数据到 localStorage
+    const serializableProject = {
+      ...project,
+      audioFile: project.audioFile instanceof File ? {
+        name: project.audioFile.name,
+        size: project.audioFile.size,
+        type: project.audioFile.type,
+        lastModified: project.audioFile.lastModified,
+        isCached: true
+      } : project.audioFile
+    };
+    
+    localStorage.setItem('timeline_last_project', JSON.stringify(serializableProject));
+  }, [project]);
+  
+  const checkForSavedProject = useCallback(() => {
+    const savedData = localStorage.getItem('timeline_last_project');
+    if (savedData) {
+      const projectData = JSON.parse(savedData);
+      return {
+        exists: true,
+        name: projectData.name,
+        updatedAt: new Date(projectData.metadata?.updatedAt),
+        hasAudio: !!projectData.audioFile,
+        lyricsCount: projectData.lyrics?.length || 0
+      };
+    }
+    return { exists: false };
+  }, []);
+};
+```
+
+#### 恢复对话框组件设计
+```typescript
+// ✅ 推荐 - 恢复对话框组件
+export const RestoreDialog: React.FC<RestoreDialogProps> = ({
+  projectInfo,
+  isLoading,
+  onRestore,
+  onStartNew,
+  onCancel
+}) => {
+  return (
+    <Overlay onClick={onCancel}>
+      <Dialog onClick={(e) => e.stopPropagation()}>
+        {/* 项目信息展示 */}
+        <ProjectInfo>
+          <InfoRow>
+            <InfoLabel>项目名称:</InfoLabel>
+            <InfoValue>{projectInfo.name}</InfoValue>
+          </InfoRow>
+          <InfoRow>
+            <InfoLabel>最后修改:</InfoLabel>
+            <InfoValue>{formatDate(projectInfo.updatedAt)}</InfoValue>
+          </InfoRow>
+          <InfoRow>
+            <InfoLabel>歌词行数:</InfoLabel>
+            <InfoValue>{projectInfo.lyricsCount} 行</InfoValue>
+          </InfoRow>
+          <InfoRow>
+            <InfoLabel>音频文件:</InfoLabel>
+            <InfoValue>
+              {projectInfo.hasAudio ? '✅ 已缓存' : '❌ 无音频'}
+            </InfoValue>
+          </InfoRow>
+        </ProjectInfo>
+        
+        {/* 操作按钮 */}
+        <Actions>
+          <Button onClick={onCancel}>取消</Button>
+          <Button onClick={onStartNew}>开始新项目</Button>
+          <Button $variant="primary" onClick={onRestore} disabled={isLoading}>
+            {isLoading && <LoadingSpinner />}
+            恢复项目
+          </Button>
+        </Actions>
+      </Dialog>
+    </Overlay>
+  );
+};
+```
+
+#### 关键开发注意事项
+
+1. **避免传入 initialProject**
+```typescript
+// ❌ 错误 - 会跳过恢复检查
+<TimelineEditor
+  onClose={onClose}
+  initialProject={{ name: '新建项目' }}
+/>
+
+// ✅ 正确 - 允许恢复检查
+<TimelineEditor
+  onClose={onClose}
+/>
+```
+
+2. **音频文件处理**
+```typescript
+// ✅ 推荐 - 音频文件缓存和恢复
+const handleRestoreProject = useCallback(async () => {
+  const result = await loadProject();
+  if (result.success && result.project) {
+    // 恢复音频文件到播放器
+    if (result.project.audioFile instanceof File) {
+      setAudioFile(result.project.audioFile);
+      setPlayerAudioFile(result.project.audioFile);
+    }
+  }
+}, [loadProject, setPlayerAudioFile]);
+```
+
+3. **错误处理和用户反馈**
+```typescript
+// ✅ 推荐 - 保存状态反馈
+const handleSave = useCallback(async () => {
+  try {
+    const result = await saveProject();
+    if (result.success) {
+      setSaveMessage('✅ ' + result.message);
+      setTimeout(() => setSaveMessage(null), 3000);
+    } else {
+      setSaveMessage('❌ ' + result.message);
+      setTimeout(() => setSaveMessage(null), 5000);
+    }
+  } catch (error) {
+    setSaveMessage('❌ 保存失败');
+    setTimeout(() => setSaveMessage(null), 5000);
+  }
+}, [saveProject]);
+```
+
+4. **存储策略**
+```typescript
+// ✅ 推荐 - 双重存储策略
+// localStorage: 轻量级数据（项目元数据、歌词）
+localStorage.setItem('timeline_last_project', JSON.stringify(projectData));
+
+// IndexedDB: 大文件数据（音频文件）
+await audioCacheManager.cacheAudioFile(audioFile);
+```
+
 #### 共享的样式组件
 ```typescript
 // ✅ 推荐 - 共享样式组件

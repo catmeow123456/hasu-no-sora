@@ -7,10 +7,11 @@ import { TimelineControls } from './TimelineControls';
 import { PreviewPanel } from './PreviewPanel';
 import { ExportDialog } from './ExportDialog';
 import { SingerTagEditor } from './SingerTagEditor';
+import { RestoreDialog } from './RestoreDialog';
 import { useTimelineProject } from './hooks/useTimelineProject';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
-import type { TimelineProject, EditableLyricLine, SingerType } from './types';
+import type { TimelineProject, EditableLyricLine, SingerType, SavedProjectInfo } from './types';
 
 const EditorContainer = styled.div`
   position: fixed;
@@ -265,6 +266,31 @@ const HelpToggleButton = styled.button`
   }
 `;
 
+const SaveMessage = styled.div`
+  position: fixed;
+  top: 80px;
+  right: ${theme.spacing.md};
+  background: ${theme.colors.surface};
+  border: 1px solid ${theme.colors.border};
+  border-radius: ${theme.borderRadius.md};
+  padding: ${theme.spacing.sm} ${theme.spacing.md};
+  box-shadow: ${theme.shadows.md};
+  font-size: ${theme.fontSizes.sm};
+  z-index: 1002;
+  animation: slideIn 0.3s ease-out;
+  
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+`;
+
 interface TimelineEditorProps {
   onClose: () => void;
   initialProject?: Partial<TimelineProject>;
@@ -280,6 +306,10 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
   const [editingLineId, setEditingLineId] = useState<string | null>(null);
   const [showSingerEditor, setShowSingerEditor] = useState(false);
   const [triggerEditLineId, setTriggerEditLineId] = useState<string | null>(null);
+  const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+  const [savedProjectInfo, setSavedProjectInfo] = useState<SavedProjectInfo | null>(null);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   
   const {
@@ -294,6 +324,9 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
     adjustSelectedLineTime,
     batchAdjustTime,
     saveProject,
+    loadProject,
+    checkForSavedProject,
+    clearSavedProject,
     isDirty
   } = useTimelineProject(initialProject);
   
@@ -454,11 +487,82 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
     setEditingLineId(null);
   }, [editingLineId, project.lyrics, updateLyricLine]);
 
+  // 处理波形点击
+  const handleWaveformClick = useCallback((time: number) => {
+    seekTo(time);
+  }, [seekTo]);
+  
+  // 处理保存（增强版，带用户反馈）
+  const handleSave = useCallback(async () => {
+    try {
+      const result = await saveProject();
+      if (result.success) {
+        setSaveMessage('✅ ' + result.message);
+        setTimeout(() => setSaveMessage(null), 3000);
+      } else {
+        setSaveMessage('❌ ' + result.message);
+        setTimeout(() => setSaveMessage(null), 5000);
+      }
+    } catch (error) {
+      console.error('Save failed:', error);
+      setSaveMessage('❌ 保存失败');
+      setTimeout(() => setSaveMessage(null), 5000);
+    }
+  }, [saveProject]);
+
+  // 初始化检查保存的项目
+  useEffect(() => {
+    // 只在没有初始项目时检查保存的项目
+    if (!initialProject) {
+      const projectInfo = checkForSavedProject();
+      if (projectInfo.exists) {
+        setSavedProjectInfo(projectInfo);
+        setShowRestoreDialog(true);
+      }
+    }
+  }, [initialProject, checkForSavedProject]);
+
+  // 处理项目恢复
+  const handleRestoreProject = useCallback(async () => {
+    setIsRestoring(true);
+    try {
+      const result = await loadProject();
+      if (result.success && result.project) {
+        // 恢复音频文件到播放器
+        if (result.project.audioFile instanceof File) {
+          setAudioFile(result.project.audioFile);
+          setPlayerAudioFile(result.project.audioFile);
+        }
+        console.log('Project restored successfully');
+      } else {
+        console.error('Failed to restore project:', result.message);
+        alert('恢复项目失败: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Restore failed:', error);
+      alert('恢复项目时发生错误');
+    } finally {
+      setIsRestoring(false);
+      setShowRestoreDialog(false);
+    }
+  }, [loadProject, setPlayerAudioFile]);
+
+  // 处理开始新项目
+  const handleStartNewProject = useCallback(async () => {
+    try {
+      await clearSavedProject();
+      setShowRestoreDialog(false);
+      console.log('Started new project, cleared saved data');
+    } catch (error) {
+      console.error('Failed to clear saved project:', error);
+    }
+  }, [clearSavedProject]);
+
   // 键盘快捷键
   useKeyboardShortcuts({
     onPlayPause: () => isPlaying ? pause() : play(),
     onInsertLyric: insertLyricAtCurrentTime,
-    onSave: saveProject,
+    onSave: handleSave,
     onClose,
     onDelete: deleteSelectedLine,
     onTimeAdjust: adjustSelectedLineTime,
@@ -468,22 +572,6 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
     onEditCurrentLine: editCurrentLine,
     onEditCurrentSinger: editCurrentSinger
   });
-  
-  // 处理波形点击
-  const handleWaveformClick = useCallback((time: number) => {
-    seekTo(time);
-  }, [seekTo]);
-  
-  // 处理保存
-  const handleSave = useCallback(async () => {
-    try {
-      await saveProject();
-      // 可以添加成功提示
-    } catch (error) {
-      console.error('Save failed:', error);
-      // 可以添加错误提示
-    }
-  }, [saveProject]);
 
   // 处理导出
   const handleExport = useCallback((format: string, options: any) => {
@@ -742,6 +830,24 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
             setEditingLineId(null);
           }}
         />
+      )}
+      
+      {/* 恢复项目对话框 */}
+      {showRestoreDialog && savedProjectInfo && (
+        <RestoreDialog
+          projectInfo={savedProjectInfo}
+          isLoading={isRestoring}
+          onRestore={handleRestoreProject}
+          onStartNew={handleStartNewProject}
+          onCancel={() => setShowRestoreDialog(false)}
+        />
+      )}
+      
+      {/* 保存消息提示 */}
+      {saveMessage && (
+        <SaveMessage>
+          {saveMessage}
+        </SaveMessage>
       )}
       
       {/* 键盘快捷键帮助 */}

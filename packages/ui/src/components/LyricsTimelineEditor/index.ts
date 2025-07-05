@@ -5,6 +5,7 @@ export { TimelineControls } from './TimelineControls';
 export { PreviewPanel } from './PreviewPanel';
 export { ExportDialog } from './ExportDialog';
 export { SingerTagEditor } from './SingerTagEditor';
+export { RestoreDialog } from './RestoreDialog';
 
 export type {
   TimelineProject,
@@ -18,6 +19,9 @@ export type {
   KeyboardShortcuts,
   AudioPlayerHook,
   TimelineProjectHook,
+  SaveResult,
+  LoadResult,
+  SavedProjectInfo,
   SingerType,
   LyricSegment
 } from './types';

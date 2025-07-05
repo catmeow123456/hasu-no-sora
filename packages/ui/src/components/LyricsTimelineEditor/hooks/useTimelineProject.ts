@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { TimelineProject, EditableLyricLine, TimelineProjectHook } from '../types';
+import { audioCacheManager } from '../utils/audioCache';
 
 const createDefaultProject = (initialProject?: Partial<TimelineProject>): TimelineProject => ({
   id: `project_${Date.now()}`,
@@ -247,55 +248,119 @@ export const useTimelineProject = (initialProject?: Partial<TimelineProject>): T
     return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
   }, []);
 
-  // 保存项目
+  // 保存项目（增强版，支持音频缓存）
   const saveProject = useCallback(async () => {
     try {
-      // 创建一个可序列化的项目副本，排除 File 对象
+      // 如果有音频文件，先缓存到 IndexedDB
+      if (project.audioFile instanceof File) {
+        await audioCacheManager.cacheAudioFile(project.audioFile);
+      }
+
+      // 创建可序列化的项目数据
       const serializableProject = {
         ...project,
         audioFile: project.audioFile instanceof File ? {
           name: project.audioFile.name,
           size: project.audioFile.size,
           type: project.audioFile.type,
-          lastModified: project.audioFile.lastModified
+          lastModified: project.audioFile.lastModified,
+          isCached: true
         } : project.audioFile
       };
       
+      // 使用固定键名保存最后一次的工作状态
       const projectData = JSON.stringify(serializableProject);
-      localStorage.setItem(`timeline_project_${project.id}`, projectData);
+      localStorage.setItem('timeline_last_project', projectData);
       
       originalProjectRef.current = { ...project };
       setIsDirty(false);
       
-      console.log('Project saved successfully');
+      return { success: true, message: '项目保存成功' };
     } catch (error) {
       console.error('Failed to save project:', error);
-      throw error;
+      return { success: false, message: '保存失败: ' + (error instanceof Error ? error.message : '未知错误') };
     }
   }, [project]);
 
-  // 加载项目
-  const loadProject = useCallback(async (projectId: string) => {
+  // 加载项目（增强版，支持音频恢复）
+  const loadProject = useCallback(async (projectId?: string) => {
     try {
-      const projectData = localStorage.getItem(`timeline_project_${projectId}`);
-      if (projectData) {
-        const loadedProject = JSON.parse(projectData) as TimelineProject;
-        
-        // 转换日期字符串回 Date 对象
-        loadedProject.metadata.createdAt = new Date(loadedProject.metadata.createdAt);
-        loadedProject.metadata.updatedAt = new Date(loadedProject.metadata.updatedAt);
-        
-        setProject(loadedProject);
-        originalProjectRef.current = loadedProject;
-        setIsDirty(false);
-        
-        console.log('Project loaded successfully');
-      } else {
-        throw new Error('Project not found');
+      // 使用固定键名加载最后一次的工作状态
+      const storageKey = projectId || 'timeline_last_project';
+      const projectData = localStorage.getItem(storageKey);
+      
+      if (!projectData) {
+        throw new Error('没有找到保存的项目');
       }
+
+      const loadedProject = JSON.parse(projectData) as TimelineProject;
+      
+      // 转换日期字符串回 Date 对象
+      loadedProject.metadata.createdAt = new Date(loadedProject.metadata.createdAt);
+      loadedProject.metadata.updatedAt = new Date(loadedProject.metadata.updatedAt);
+      
+      // 尝试恢复音频文件
+      if (loadedProject.audioFile && typeof loadedProject.audioFile === 'object' && 'isCached' in loadedProject.audioFile) {
+        const audioFileInfo = loadedProject.audioFile as any;
+        try {
+          const cachedFile = await audioCacheManager.getCachedAudioFile(audioFileInfo.name);
+          if (cachedFile) {
+            loadedProject.audioFile = cachedFile;
+            console.log('Audio file restored from cache');
+          } else {
+            console.warn('Audio file not found in cache');
+            loadedProject.audioFile = null;
+          }
+        } catch (error) {
+          console.error('Failed to restore audio file:', error);
+          loadedProject.audioFile = null;
+        }
+      }
+      
+      setProject(loadedProject);
+      originalProjectRef.current = loadedProject;
+      setIsDirty(false);
+      
+      console.log('Project loaded successfully');
+      return { success: true, project: loadedProject };
     } catch (error) {
       console.error('Failed to load project:', error);
-      throw error;
+      return { success: false, message: error instanceof Error ? error.message : '加载失败' };
+    }
+  }, []);
+
+  // 检查是否有保存的项目
+  const checkForSavedProject = useCallback(() => {
+    const savedData = localStorage.getItem('timeline_last_project');
+    
+    if (savedData) {
+      try {
+        const projectData = JSON.parse(savedData);
+        
+        return {
+          exists: true,
+          name: projectData.name || '未命名项目',
+          updatedAt: new Date(projectData.metadata?.updatedAt || Date.now()),
+          hasAudio: !!projectData.audioFile,
+          lyricsCount: projectData.lyrics?.length || 0
+        };
+      } catch (error) {
+        console.error('Failed to parse saved project:', error);
+        return { exists: false };
+      }
+    }
+    
+    return { exists: false };
+  }, []);
+
+  // 清除保存的项目
+  const clearSavedProject = useCallback(async () => {
+    try {
+      localStorage.removeItem('timeline_last_project');
+      await audioCacheManager.clearCache();
+      console.log('Saved project cleared');
+    } catch (error) {
+      console.error('Failed to clear saved project:', error);
     }
   }, []);
 
@@ -323,6 +388,8 @@ export const useTimelineProject = (initialProject?: Partial<TimelineProject>): T
     batchAdjustTime,
     saveProject,
     loadProject,
+    checkForSavedProject,
+    clearSavedProject,
     isDirty
   };
 };
