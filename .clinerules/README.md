@@ -1,225 +1,101 @@
-# Hasu no Sora 音乐播放器 - 项目概览
+# Hasu no Sora 音乐播放器 - AI 助手指南
 
-## 🎵 项目简介
-
-Hasu no Sora 是一个温暖阳光风格的 Web 音乐播放器，专为 Hasu no Sora 音乐专辑设计。采用 TypeScript 全栈开发，使用 Yarn Workspaces 管理 Monorepo 结构。
+## 🎵 项目概述
+温暖阳光风格的 Web 音乐播放器，专为 Hasu no Sora 音乐设计。TypeScript 全栈 + Yarn Workspaces Monorepo。
 
 ## 🏗️ 技术栈
+- **后端**: Node.js + Express + TypeScript
+- **前端**: React 18 + TypeScript + Styled Components + Vite
+- **开发**: Yarn Workspaces + TSX
 
-### 后端 (packages/server)
-- **Node.js** + **Express** + **TypeScript**
-- **express-session** - Session 管理和认证
-- **music-metadata** - 音频元数据解析
-- **CORS** - 跨域支持
-- **TSX** - TypeScript 执行器
-
-### 前端 (packages/ui)
-- **React 18** + **TypeScript**
-- **Styled Components** - CSS-in-JS 样式
-- **Vite** - 构建工具和开发服务器
-- **React Router DOM** - 路由管理
-
-### 开发工具
-- **Yarn Workspaces** - Monorepo 管理
-- **Concurrently** - 并行运行脚本
-
-## 📁 项目结构
-
+## 📁 核心结构
 ```
-hasu-no-sora/
-├── packages/
-│   ├── server/              # Express 后端服务器
-│   │   ├── src/
-│   │   │   ├── index.ts     # 服务器入口
-│   │   │   ├── types/       # 类型定义
-│   │   │   └── utils/       # 工具函数 (musicScanner)
-│   │   └── package.json
-│   └── ui/                  # React 前端应用
-│       ├── src/
-│       │   ├── components/  # React 组件
-│       │   ├── hooks/       # 自定义 Hooks
-│       │   ├── services/    # API 服务
-│       │   ├── styles/      # 样式和主题
-│       │   └── types/       # 类型定义
-│       └── package.json
-├── music/                   # 音乐文件存储
-└── package.json            # 根目录配置
+packages/
+├── server/src/           # 后端服务
+│   ├── index.ts         # 服务器入口
+│   ├── types/           # 后端类型
+│   └── utils/           # musicScanner, lyricsScanner
+└── ui/src/              # 前端应用
+    ├── components/      # React 组件
+    │   ├── LyricsTimelineEditor/  # 歌词时间轴生成工具
+    │   └── shared/      # 共享组件
+    ├── hooks/           # 自定义 Hooks
+    ├── styles/theme.ts  # 设计系统
+    └── types/           # 前端类型
+music/                   # 音乐文件存储
 ```
 
 ## 🚀 开发命令
-
 ```bash
-# 安装依赖
-yarn install
-
-# 开发模式 (同时启动前后端)
-yarn dev
-
-# 构建前端
-yarn build
-
-# 启动生产服务器
-yarn start
-
-# 清理构建文件
-yarn clean
+yarn dev     # 开发模式 (前后端同时启动)
+yarn build   # 构建前端
+yarn start   # 生产服务器
 ```
-
-## 🌐 服务端口
-
-- **前端开发服务器**: http://localhost:5173
-- **后端开发服务器**: http://localhost:3001
-- **生产服务器**: http://localhost:3000
-
-## 📡 API 接口
-
-### 认证接口
-- `POST /api/auth/login` - 用户登录 (需要密码: `hasu-no-sora`)
-- `POST /api/auth/logout` - 用户登出
-- `GET /api/auth/status` - 检查认证状态
-
-### 核心接口 (需要认证)
-- `GET /api/albums` - 获取专辑列表
-- `GET /api/albums/:id` - 获取专辑详情
-- `GET /api/images/:albumId/:filename` - 获取专辑封面
-- `GET /audio/:albumName/:filename` - 获取音频文件
-- `GET /api/lyrics/:albumName/:trackFilename` - 获取歌词文件 (LRC 格式)
-
-### 开发接口 (需要认证)
-- `POST /api/rescan` - 强制重新扫描音乐库并清除缓存
-
-### 公开接口
-- `GET /api/health` - 健康检查
 
 ## 🎨 设计系统
+- **主色**: #FF8C42 (暖橙) | **次色**: #FFD23F (金黄) | **强调**: #FF6B9D (粉色)
+- **背景**: #FFF8F0 (奶油白) | **字体**: Inter/Poppins + Noto Sans SC
 
-### 色彩方案
-- **主色调**: 暖橙色 (#FF8C42)
-- **次要色**: 金黄色 (#FFD23F)
-- **强调色**: 柔和粉色 (#FF6B9D)
-- **背景色**: 奶油白 (#FFF8F0)
-
-### 字体
-- **主字体**: Inter, Noto Sans SC
-- **标题字体**: Poppins, Noto Sans SC
-
-## 🎵 音乐文件组织
-
-音乐文件按专辑文件夹组织在 `music/` 目录下：
-
-```
-music/
-├── Dream believers/
-│   ├── 01 Dream Believers.mp3
-│   └── ...
-├── Holiday∞Holiday - Tragic Drops/
-│   ├── 01 謳歌爛漫.mp3
-│   ├── Folder.jpg          # 专辑封面
-│   └── ...
-└── Reflection In the mirror/
-    └── ...
-```
+## 🎤 多歌手歌词系统 (核心特性)
 
 ### 支持格式
-- **音频**: `.mp3`, `.wav`, `.flac`, `.m4a`, `.ogg`
-- **封面**: `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`
-- **歌词**: `.lrc` (LRC 格式，支持多歌手标记)
-
-## 🔧 核心功能
-
-1. **密码保护** - 需要输入密码 `hasu-no-sora` 才能访问
-2. **专辑浏览** - 网格展示所有专辑
-3. **音乐播放** - 支持播放/暂停、上一首/下一首
-4. **音量控制** - 可调节播放音量
-5. **进度控制** - 显示播放进度，支持拖拽跳转
-6. **专辑封面** - 自动识别并显示专辑封面
-7. **多歌手歌词** - 支持 `@歌手@歌词` 格式，不同歌手显示不同颜色
-8. **歌词滚动** - LRC 格式歌词实时同步滚动显示
-9. **响应式设计** - 适配不同设备屏幕
-
-## 🎤 多歌手歌词系统
-
-### 歌词格式
-支持在 LRC 歌词文件中使用多种歌手标记格式：
-
-#### 单歌手标记
 ```lrc
-[00:12.34]@kozue@ひらひらと舞い散るのは
-[00:15.67]@kaho@願いよ今こそ花となれ
-[01:12.00]普通的歌词（无歌手标记，正常显示）
+[00:12.34]@kozue@单歌手歌词
+[01:05.44]@kozue@混合 @kaho@歌手 @kozue@标记
+[02:05.00]@kaho,tsuzuri,megumi@彩虹渐变效果
 ```
 
-#### 混合歌手标记
-```lrc
-[01:05.44]@kozue@探そう @kaho@探そう @kozue@自分だけの音を
-[01:08.67]@kaho@咲かそう @kozue@咲かそう @kaho@声なき声も
+### 歌手配色 (关键信息)
+| 简称 | 角色 | 颜色 | 简称 | 角色 | 颜色 |
+|------|------|------|------|------|------|
+| `kozue` | 乙宗梢 | #68be8d | `rurino` | 大泽瑠璃乃 | #e7609e |
+| `kaho` | 日野下花帆 | #f8b500 | `megumi` | 藤岛慈 | #c8c2c6 |
+| `sayaka` | 村野沙耶香 | #5383c3 | `ginko` | 百生吟子 | #a2d7dd |
+| `tsuzuri` | 夕雾缀理 | #ba2636 | `kosuzu` | 徒町小铃 | #fad764 |
+| `himena` | 安养寺姬芽 | #9d8de2 | `hasunosora` | 主题色 | #FB8A9B |
+
+**小组**: `cerise` (#da645f), `dollche` (#163bca), `miracra` (#F3B171)
+
+## 🛠️ 歌词时间轴生成工具
+
+### 核心功能
+- **音频波形**: Canvas 绘制，支持点击跳转
+- **实时编辑**: 双击编辑歌词，拖拽调整时间
+- **多歌手支持**: 完整的歌手标记和彩虹效果
+- **导出格式**: LRC, Enhanced LRC, JSON, SRT, TXT
+- **键盘快捷键**: Space(播放), Ctrl+T(插入), Ctrl+S(保存)
+
+### 组件架构
+```
+LyricsTimelineEditor/
+├── TimelineEditor.tsx      # 主界面
+├── AudioWaveform.tsx       # 波形可视化
+├── LyricLineEditor.tsx     # 歌词行编辑
+├── SingerTagEditor.tsx     # 歌手标记编辑
+├── PreviewPanel.tsx        # 实时预览
+├── ExportDialog.tsx        # 导出功能
+└── hooks/                  # 自定义 Hooks
 ```
 
-#### 多歌手组合（彩虹效果）
-```lrc
-[00:35.10]@kaho,tsuzuri,megumi@On your mark, ready set go!
-[01:27.00]@sayaka,kozue,rurino@浮世を駆け抜けて
-[02:05.00]@kaho,tsuzuri,megumi@咲き誇れ
-```
+## 📡 API 接口
+- **认证**: 密码 `hasu-no-sora`
+- **核心接口**: `/api/albums`, `/api/albums/:id`, `/audio/:albumName/:filename`, `/api/lyrics/:albumName/:trackFilename`
 
-**彩虹效果说明**：
-- 使用逗号分隔多个歌手：`@歌手1,歌手2,歌手3@歌词文本`
-- 系统会自动生成从第一个歌手颜色到最后一个歌手颜色的线性渐变
-- 例如 `@kaho,tsuzuri,megumi@` 会产生金黄色→红色→银灰色的彩虹过渡效果
+## 🎯 开发指导
 
-### 支持的歌手及印象色
-基于 Hasu no Sora 官方角色印象色配置：
+### 代码规范
+- **TypeScript**: 严格类型，避免 `any`
+- **React**: 函数组件 + Hooks，使用 `React.memo` 优化
+- **样式**: Styled Components + 主题系统
+- **性能**: `useCallback`/`useMemo` 缓存
 
-#### 个人歌手
-| 歌手简称 | 角色名称 | 印象色 | 色值 |
-|---------|---------|--------|------|
-| `kozue` | 乙宗梢 | 人鱼绿色 | #68be8d |
-| `kaho` | 日野下花帆 | 太阳色 | #f8b500 |
-| `sayaka` | 村野沙耶香 | 冰蓝色 | #5383c3 |
-| `tsuzuri` | 夕雾缀理 | 我的红色 | #ba2636 |
-| `rurino` | 大泽瑠璃乃 | 瑠璃粉色 | #e7609e |
-| `megumi` | 藤岛慈 | 天使白色 | #c8c2c6 |
-| `ginko` | 百生吟子 | 天之原色 | #a2d7dd |
-| `kosuzu` | 徒町小铃 | 长庚星色 | #fad764 |
-| `himena` | 安养寺姬芽 | 糖果紫色 | #9d8de2 |
-
-#### 小组配色
-| 小组简称 | 小组名称 | 印象色 | 色值 |
-|---------|---------|--------|------|
-| `cerise` | Cerise Bouquet | 玫瑰色 | #da645f |
-| `dollche` | DOLLCHESTRA | 蓝色 | #163bca |
-| `miracra` | Mira-Cra Park! | 黄色 | #F3B171 |
-
-#### 项目主题色
-| 标识符 | 名称 | 印象色 | 色值 |
-|-------|------|--------|------|
-| `hasunosora` | Hasu no Sora | 主题粉色 | #FB8A9B |
-
-### 显示特性
-- **全屏模式**: 完整歌词显示，支持多色分段
-- **折叠模式**: 预览模式也支持歌手颜色显示
-- **混合行支持**: 一行内多个歌手的文本显示不同颜色
-- **向后兼容**: 完全兼容标准 LRC 格式
-- **优雅降级**: 未知歌手使用默认文本颜色
-
-## 🎯 AI 助手工作指导
-
-### 开发重点
-- 保持 TypeScript 类型安全
-- 遵循 React Hooks 最佳实践
-- 使用 Styled Components 进行样式管理
-- 确保前后端类型定义同步
-- 维护温暖阳光的设计风格
-
-### 常见任务
-- 添加新的音乐播放功能
-- 优化音频加载和播放性能
-- 扩展专辑和音轨元数据支持
-- 改进 UI/UX 交互体验
-- 添加新的 API 接口
+### 歌词组件开发
+- 使用 `packages/ui/src/components/shared/LyricsSegments.tsx` 共享渲染逻辑
+- 支持 `@歌手@文本` 和 `@歌手1,歌手2@文本` 格式
+- 保持前后端类型定义同步
 
 ### 注意事项
 - 音乐文件路径配置在 `packages/server/src/index.ts`
 - 前端通过 Vite 代理访问后端 API
 - 使用 Yarn Workspaces，注意包管理命令
-- 保持设计系统的一致性
+- 保持设计系统的一致性，遵循温暖阳光风格

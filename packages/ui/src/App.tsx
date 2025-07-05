@@ -6,6 +6,7 @@ import { AudioPlayer } from './components/AudioPlayer';
 import { LyricsPanel } from './components/LyricsPanel';
 import { LoginForm } from './components/LoginForm';
 import { CuteLoadingSpinner } from './components/CuteLoadingSpinner';
+import { TimelineEditor } from './components/LyricsTimelineEditor';
 import { useAudioPlayer } from './hooks/useAudioPlayer';
 import { useLyrics } from './hooks/useLyrics';
 import { useAuth } from './hooks/useAuth';
@@ -78,11 +79,42 @@ const LoadingContainer = styled.div`
   background: ${({ theme }) => theme.gradients.background};
 `;
 
+const FloatingActionButton = styled.button`
+  position: fixed;
+  bottom: 140px; /* Above the audio player */
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: ${theme.borderRadius.full};
+  background: linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.secondary});
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  box-shadow: ${theme.shadows.lg};
+  transition: all ${theme.transitions.fast};
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: ${theme.shadows.xl};
+  }
+  
+  &:active {
+    transform: translateY(0) scale(0.95);
+  }
+`;
+
 function App() {
   const [appState, setAppState] = useState<AppState>({
     currentView: 'albums',
     selectedAlbumId: null,
   });
+
+  const [showTimelineEditor, setShowTimelineEditor] = useState(false);
 
   const {
     isAuthenticated,
@@ -193,6 +225,14 @@ function App() {
             initialState="preview"
           />
           
+          {/* 歌词时间轴编辑器浮动按钮 */}
+          <FloatingActionButton
+            onClick={() => setShowTimelineEditor(true)}
+            title="打开歌词时间轴生成工具"
+          >
+            🎵
+          </FloatingActionButton>
+          
           <AudioPlayer
             playerState={playerState}
             onPlayPause={togglePlayPause}
@@ -202,6 +242,18 @@ function App() {
             onVolumeChange={setVolume}
             formatTime={formatTime}
           />
+          
+          {/* 歌词时间轴编辑器 */}
+          {showTimelineEditor && (
+            <TimelineEditor
+              onClose={() => setShowTimelineEditor(false)}
+              initialProject={{
+                name: playerState.currentTrack ? 
+                  `${playerState.currentTrack.title} - 歌词项目` : 
+                  '新建歌词项目'
+              }}
+            />
+          )}
         </AppContainer>
       )}
     </ThemeProvider>

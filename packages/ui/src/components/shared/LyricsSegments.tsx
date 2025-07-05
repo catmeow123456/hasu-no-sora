@@ -35,46 +35,70 @@ export const RainbowSegment = styled.span<{ $gradient: string; $isCurrent?: bool
 // 共享的歌词分段渲染函数
 export const useLyricSegmentRenderer = () => {
   return useCallback((line: LyricLine, isCurrent: boolean = false) => {
-    // 如果没有分段信息，回退到显示完整文本
-    if (!line.segments || line.segments.length === 0) {
-      return <SingerSegment $isCurrent={isCurrent}>{line.text || '\u00A0'}</SingerSegment>;
-    }
+    try {
+      // 安全检查：确保 line 对象存在
+      if (!line) {
+        return <SingerSegment $isCurrent={isCurrent}>{'\u00A0'}</SingerSegment>;
+      }
 
-    // 渲染多个分段
-    return (
-      <>
-        {line.segments.map((segment, segmentIndex) => {
-          // 检查是否为彩虹效果片段（多歌手组合）
-          if (segment.isRainbow && segment.singers && segment.singers.length > 1) {
-            const gradient = createRainbowGradient(segment.singers);
+      // 如果没有分段信息，回退到显示完整文本
+      if (!line.segments || line.segments.length === 0) {
+        return <SingerSegment $isCurrent={isCurrent}>{line.text || '\u00A0'}</SingerSegment>;
+      }
+
+      // 渲染多个分段
+      return (
+        <>
+          {line.segments.map((segment, segmentIndex) => {
+            // 安全检查：确保 segment 对象存在
+            if (!segment || typeof segment.text !== 'string') {
+              return (
+                <SingerSegment key={segmentIndex} $isCurrent={isCurrent}>
+                  {'\u00A0'}
+                </SingerSegment>
+              );
+            }
+
+            // 检查是否为彩虹效果片段（多歌手组合）
+            if (segment.isRainbow && segment.singers && Array.isArray(segment.singers) && segment.singers.length > 1) {
+              const gradient = createRainbowGradient(segment.singers);
+              return (
+                <RainbowSegment 
+                  key={segmentIndex} 
+                  $gradient={gradient} 
+                  $isCurrent={isCurrent}
+                  title={`${getRainbowSingerNames(segment.singers)}: ${segment.text}`}
+                >
+                  {segment.text}
+                  {segmentIndex < line.segments.length - 1 ? ' ' : ''}
+                </RainbowSegment>
+              );
+            }
+            
+            // 普通单歌手片段
             return (
-              <RainbowSegment 
+              <SingerSegment 
                 key={segmentIndex} 
-                $gradient={gradient} 
+                $singer={segment.singer} 
                 $isCurrent={isCurrent}
-                title={`${getRainbowSingerNames(segment.singers)}: ${segment.text}`}
+                title={segment.singer ? `${segment.singer}: ${segment.text}` : undefined}
               >
                 {segment.text}
                 {segmentIndex < line.segments.length - 1 ? ' ' : ''}
-              </RainbowSegment>
+              </SingerSegment>
             );
-          }
-          
-          // 普通单歌手片段
-          return (
-            <SingerSegment 
-              key={segmentIndex} 
-              $singer={segment.singer} 
-              $isCurrent={isCurrent}
-              title={segment.singer ? `${getSingerColorForState(segment.singer)}: ${segment.text}` : undefined}
-            >
-              {segment.text}
-              {segmentIndex < line.segments.length - 1 ? ' ' : ''}
-            </SingerSegment>
-          );
-        })}
-      </>
-    );
+          })}
+        </>
+      );
+    } catch (error) {
+      console.error('Error rendering lyric segments:', error, line);
+      // 发生错误时的降级渲染
+      return (
+        <SingerSegment $isCurrent={isCurrent} style={{ color: theme.colors.text.muted }}>
+          {line?.text || '渲染错误'}
+        </SingerSegment>
+      );
+    }
   }, []);
 };
 
