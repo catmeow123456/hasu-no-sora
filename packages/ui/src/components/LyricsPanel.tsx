@@ -1,7 +1,8 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import styled, { css } from 'styled-components';
-import { theme, getSingerColorForState } from '../styles/theme';
+import { theme } from '../styles/theme';
 import { LyricsDisplay } from './LyricsDisplay';
+import { useLyricSegmentRenderer, getCurrentLineIndex } from './shared/LyricsSegments';
 import type { Lyrics, LyricLine } from '../types';
 
 export type LyricsViewState = 'hidden' | 'preview' | 'fullscreen';
@@ -220,12 +221,6 @@ const ToggleButton = styled.button<{ $viewState: LyricsViewState }>`
   }
 `;
 
-// 预览模式下的歌手分段组件 - 与全屏模式保持一致
-const PreviewSingerSegment = styled.span<{ $singer?: string; $isCurrent?: boolean }>`
-  color: ${props => getSingerColorForState(props.$singer, props.$isCurrent)};
-  font-weight: ${props => props.$isCurrent ? '700' : '500'}; /* 与全屏模式保持一致 */
-  transition: color 0.3s ease;
-`;
 
 export const LyricsPanel: React.FC<LyricsPanelProps> = ({
   lyrics,
@@ -261,21 +256,8 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
   const dragStartRef = useRef<{ y: number; startOffset: number } | null>(null);
   const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 计算当前歌词行索引
-  const getCurrentLineIndex = useCallback((time: number): number => {
-    if (!lyrics || lyrics.lines.length === 0) return -1;
-    let result = -1;
-    for (let i = 0; i < lyrics.lines.length; i++) {
-      if (lyrics.lines[i].time <= time) {
-        result = i;
-      } else {
-        break;
-      }
-    }
-    return result;
-  }, [lyrics]);
-
-  const currentLineIndex = getCurrentLineIndex(currentTime);
+  // 使用共享的当前行索引计算函数
+  const currentLineIndex = getCurrentLineIndex(lyrics, currentTime);
 
   // 更新显示的歌词行，实现平滑过渡
   useEffect(() => {
@@ -505,25 +487,8 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
     }
   }, [panelState.isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
 
-  // 渲染歌词行的分段内容（预览模式专用）
-  const renderPreviewLyricSegments = useCallback((line: LyricLine, isCurrent: boolean = false) => {
-    // 如果没有分段信息，回退到显示完整文本
-    if (!line.segments || line.segments.length === 0) {
-      return line.text || '';
-    }
-
-    // 渲染多个分段
-    return (
-      <>
-        {line.segments.map((segment, segmentIndex) => (
-          <PreviewSingerSegment key={segmentIndex} $singer={segment.singer} $isCurrent={isCurrent}>
-            {segment.text}
-            {segmentIndex < line.segments.length - 1 ? ' ' : ''}
-          </PreviewSingerSegment>
-        ))}
-      </>
-    );
-  }, []);
+  // 使用共享的歌词分段渲染函数
+  const renderPreviewLyricSegments = useLyricSegmentRenderer();
 
   // 渲染预览内容 - 使用状态管理的平滑过渡
   const renderPreviewContent = () => {

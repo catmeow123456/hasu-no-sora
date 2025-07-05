@@ -183,6 +183,79 @@ const PlayButton = styled.button`
 `;
 ```
 
+## 🔄 代码复用和共享组件
+
+### 歌词组件重构
+为了消除 `LyricsDisplay.tsx` 和 `LyricsPanel.tsx` 之间的重复代码，我们创建了共享组件：
+
+#### 共享文件结构
+```
+packages/ui/src/components/shared/
+└── LyricsSegments.tsx  # 共享的歌词分段组件和逻辑
+```
+
+#### 共享的样式组件
+```typescript
+// ✅ 推荐 - 共享样式组件
+export const SingerSegment = styled.span<{ $singer?: string; $isCurrent?: boolean }>`
+  color: ${props => getSingerColorForState(props.$singer, props.$isCurrent)};
+  font-weight: ${props => props.$isCurrent ? '700' : '500'};
+  transition: color 0.3s ease;
+`;
+
+export const RainbowSegment = styled.span<{ $gradient: string; $isCurrent?: boolean }>`
+  background: ${props => props.$gradient};
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: ${props => props.$isCurrent ? '700' : '600'};
+  transition: all 0.3s ease;
+  opacity: ${props => props.$isCurrent ? 1 : 0.85};
+`;
+```
+
+#### 共享的渲染逻辑
+```typescript
+// ✅ 推荐 - 共享 Hook
+export const useLyricSegmentRenderer = () => {
+  return useCallback((line: LyricLine, isCurrent: boolean = false) => {
+    // 统一的分段渲染逻辑，支持单歌手和彩虹效果
+  }, []);
+};
+
+// ✅ 推荐 - 共享工具函数
+export const getCurrentLineIndex = (lyrics: any, time: number): number => {
+  // 统一的当前行索引计算逻辑
+};
+```
+
+#### 使用方式
+```typescript
+// ✅ 推荐 - 在组件中使用共享逻辑
+import { useLyricSegmentRenderer, getCurrentLineIndex } from './shared/LyricsSegments';
+
+const MyComponent = () => {
+  const renderLyricSegments = useLyricSegmentRenderer();
+  const currentLineIndex = getCurrentLineIndex(lyrics, currentTime);
+  
+  return (
+    <div>
+      {lyrics.lines.map((line, index) => (
+        <div key={index}>
+          {renderLyricSegments(line, index === currentLineIndex)}
+        </div>
+      ))}
+    </div>
+  );
+};
+```
+
+### 重构原则
+- **DRY 原则**: 避免重复代码，提取共享逻辑
+- **单一职责**: 每个共享组件只负责一个特定功能
+- **类型安全**: 保持 TypeScript 类型定义的一致性
+- **性能优化**: 使用 `useCallback` 和 `React.memo` 优化性能
+
 ## 🖼️ 懒加载和资源优化
 
 ### 图片懒加载
@@ -190,61 +263,10 @@ const PlayButton = styled.button`
 - 提前 50px 开始加载图片，优化用户体验
 - 实现加载状态和错误处理
 
-```typescript
-// ✅ 推荐 - LazyImage 组件实现
-export const LazyImage: React.FC<LazyImageProps> = React.memo(({
-  src, alt, placeholder, onError
-}) => {
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [isInView, setIsInView] = useState(false);
-  const imgRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsInView(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: '50px', threshold: 0.1 }
-    );
-
-    if (imgRef.current) observer.observe(imgRef.current);
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <ImageContainer ref={imgRef}>
-      {isInView && (
-        <img
-          src={src}
-          alt={alt}
-          onLoad={() => setIsLoaded(true)}
-          onError={onError}
-          loading="lazy"
-        />
-      )}
-    </ImageContainer>
-  );
-});
-```
-
 ### 音频预加载策略
 - 设置 `preload="metadata"` 只预加载元数据
 - 避免自动预加载完整音频文件
 - 实现智能缓存机制
-
-```typescript
-// ✅ 推荐 - 音频元素优化
-useEffect(() => {
-  if (!audioRef.current) {
-    audioRef.current = new Audio();
-    audioRef.current.volume = playerState.volume;
-    audioRef.current.preload = 'metadata'; // 只预加载元数据
-  }
-}, []);
-```
 
 ## 🚀 Express 后端规范
 
