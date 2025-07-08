@@ -10,7 +10,7 @@
    ```
 
 2. **访问应用**
-   打开浏览器访问：`http://localhost:3000`
+   打开浏览器访问：`http://localhost:8080`
 
 3. **查看日志**
    ```bash
@@ -51,7 +51,7 @@
 
 ### 环境变量
 - `NODE_ENV`: 运行环境（默认：production）
-- `PORT`: 服务端口（默认：3000）
+- `PORT`: 服务端口（默认：8080）
 
 ### 音乐文件组织
 ```
@@ -68,9 +68,9 @@ music/
 
 ## 🌐 访问路径
 
-- **主应用**: `http://localhost:3000`
-- **API 健康检查**: `http://localhost:3000/api/health`
-- **专辑列表 API**: `http://localhost:3000/api/albums`
+- **主应用**: `http://localhost:8080`
+- **API 健康检查**: `http://localhost:8080/api/health`
+- **专辑列表 API**: `http://localhost:8080/api/albums`
 
 ## 🔍 故障排除
 
@@ -92,7 +92,7 @@ music/
 
 3. **前端页面无法访问**
    - 确认访问路径为根路径 `/`
-   - 检查端口 3000 是否被占用
+   - 检查端口 8080 是否被占用
    - 查看浏览器开发者工具的网络请求
 
 ### 日志查看
@@ -119,7 +119,7 @@ docker-compose logs --tail=50 hasu-no-sora
 ### 网络安全
 - 容器运行在非 root 用户下
 - 音乐文件以只读模式挂载
-- 只暴露必要的端口（3000）
+- 只暴露必要的端口（8080）
 
 ## 📊 性能优化
 

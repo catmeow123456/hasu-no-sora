@@ -7,14 +7,14 @@
 ## 🏗️ 生产架构
 
 ### 端口配置
-- **应用服务**: `http://localhost:3000`
-- **API 服务**: `http://localhost:3000/api`
-- **音频文件**: `http://localhost:3000/audio`
+- **应用服务**: `http://localhost:8080`
+- **API 服务**: `http://localhost:8080/api`
+- **音频文件**: `http://localhost:8080/audio`
 
 ### 服务架构
 ```
 ┌─────────────────────────────────────┐
-│         Express 服务器 (3000)        │
+│         Express 服务器 (8080)        │
 ├─────────────────────────────────────┤
 │  ✅ 前端静态文件服务 (/)             │
 │  ✅ API 接口服务 (/api)              │
@@ -171,10 +171,10 @@ yarn workspace @hasu/ui test:build
 ```bash
 # 基础配置
 NODE_ENV=production
-PORT=3000
+PORT=8080
 
 # API 配置
-API_BASE_URL=http://localhost:3000
+API_BASE_URL=http://localhost:8080
 MUSIC_PATH=./music
 
 # 性能优化
@@ -183,7 +183,7 @@ ENABLE_CACHE=true
 CACHE_DURATION=300000
 
 # 安全配置
-CORS_ORIGIN=http://localhost:3000
+CORS_ORIGIN=http://localhost:8080
 TRUST_PROXY=false
 
 # 日志配置
@@ -247,7 +247,7 @@ yarn install
 **2. 服务器启动失败**
 ```bash
 # 检查端口占用
-lsof -i :3000
+lsof -i :8080
 
 # 检查构建文件
 ls -la packages/server/dist/
@@ -286,7 +286,7 @@ time yarn build:prod
 ps aux | grep node
 
 # 网络请求监控
-curl -w "@curl-format.txt" http://localhost:3000/api/health
+curl -w "@curl-format.txt" http://localhost:8080/api/health
 ```
 
 ## 📊 生产部署检查清单
@@ -304,7 +304,7 @@ curl -w "@curl-format.txt" http://localhost:3000/api/health
 - [ ] 构建文件语法验证通过
 
 ### 运行时检查
-- [ ] 服务器成功启动在端口 3000
+- [ ] 服务器成功启动在端口 8080
 - [ ] 前端页面可正常访问
 - [ ] API 接口响应正常
 - [ ] 音频文件可正常播放

@@ -55,8 +55,8 @@ yarn install
 yarn dev
 ```
 
-- 前端开发服务器: http://localhost:3000
-- 后端 API 服务器: http://localhost:3000
+- 前端开发服务器: http://localhost:8080
+- 后端 API 服务器: http://localhost:8080
 
 ### 生产构建
 

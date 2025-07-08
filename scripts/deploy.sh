@@ -178,7 +178,7 @@ start_production() {
         print_status "使用以下命令启动生产服务器："
         echo "  yarn start:prod"
         echo "  或者"
-        echo "  NODE_ENV=production PORT=3000 yarn start"
+        echo "  NODE_ENV=production PORT=8080 yarn start"
     fi
 }
 

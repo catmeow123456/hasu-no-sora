@@ -78,7 +78,7 @@ RUN mkdir -p /app/music && chown -R hasu:nodejs /app
 USER hasu
 
 # 暴露端口
-EXPOSE 3000
+EXPOSE 8080
 
 # 清理代理环境变量（运行时不需要）
 ENV HTTP_PROXY=
@@ -87,7 +87,7 @@ ENV NO_PROXY=
 
 # 设置环境变量
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=8080
 
 # 启动命令
 CMD ["node", "packages/server/dist/index.js"]

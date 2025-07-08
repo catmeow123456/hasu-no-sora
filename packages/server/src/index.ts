@@ -19,7 +19,7 @@ declare module 'express-session' {
 }
 
 const app = express();
-const PORT = process.env.NODE_ENV === 'production' ? 3000 : 3001;
+const PORT = process.env.NODE_ENV === 'production' ? 8080 : 3001;
 
 // 音乐文件路径 - 指向项目根目录的音乐文件夹
 const MUSIC_PATH = path.resolve(__dirname, '../../../music');

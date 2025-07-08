@@ -9,7 +9,7 @@
     "build:prod": "NODE_ENV=production tsc && vite build --mode production",
     "build:analyze": "NODE_ENV=production vite build --mode production --analyze",
     "preview": "vite preview",
-    "preview:prod": "vite preview --host 0.0.0.0 --port 3000",
+    "preview:prod": "vite preview --host 0.0.0.0 --port 8080",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
     "test:build": "tsc && echo '✅ TypeScript compilation successful'"

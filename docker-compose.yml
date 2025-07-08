@@ -11,15 +11,15 @@ services:
         - NO_PROXY=localhost,127.0.0.1
     container_name: hasu-no-sora-player
     ports:
-      - "3000:3000"
+      - "8080:8080"
     volumes:
       - ./music:/app/music:ro
     environment:
       - NODE_ENV=production
-      - PORT=3000
+      - PORT=8080
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -27,7 +27,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.hasu-no-sora.rule=Host(`localhost`)"
-      - "traefik.http.services.hasu-no-sora.loadbalancer.server.port=3000"
+      - "traefik.http.services.hasu-no-sora.loadbalancer.server.port=8080"
 
 networks:
   default:

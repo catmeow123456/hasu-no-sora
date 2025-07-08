@@ -74,15 +74,15 @@ start_server() {
     echo ""
     echo "🎵 Hasu no Sora 音乐播放器"
     echo "=========================="
-    echo "🌐 应用地址: http://localhost:3000"
-    echo "📡 API 服务: http://localhost:3000/api"
+    echo "🌐 应用地址: http://localhost:8080"
+    echo "📡 API 服务: http://localhost:8080/api"
     echo ""
     print_warning "按 Ctrl+C 停止服务器"
     echo ""
     
     # 设置生产环境变量
     export NODE_ENV=production
-    export PORT=3000
+    export PORT=8080
     
     # 启动后端服务器（静态文件服务）
     yarn workspace @hasu/server start:prod
@@ -105,8 +105,8 @@ show_help() {
     echo ""
     echo "注意:"
     echo "  - 请确保已经运行过构建命令: yarn build 或 ./scripts/deploy.sh"
-    echo "  - 服务器运行在端口 3000，同时提供前端和 API 服务"
-    echo "  - 访问 http://localhost:3000 即可使用应用"
+    echo "  - 服务器运行在端口 8080，同时提供前端和 API 服务"
+    echo "  - 访问 http://localhost:8080 即可使用应用"
 }
 
 # 主执行流程

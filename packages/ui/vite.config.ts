@@ -24,7 +24,7 @@ export default defineConfig(({ command, mode }) => {
       },
     },
     preview: {
-      port: 3000,
+      port: 8080,
       host: true,
     },
     build: {
